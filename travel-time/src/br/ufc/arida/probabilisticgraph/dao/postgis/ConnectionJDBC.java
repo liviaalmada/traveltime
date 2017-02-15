@@ -1,4 +1,4 @@
-package br.uf.arida.traveltime.dao.postgis;
+package br.ufc.arida.probabilisticgraph.dao.postgis;
 
 
 import java.io.File;

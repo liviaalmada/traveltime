@@ -2,9 +2,12 @@ package jMEFTutorials;
 
 import java.util.Vector;
 
-import Tools.ExpectationMaximization1D;
-import Tools.KMeans;
-import jMEF.*;
+import com.jmef.BregmanSoftClustering;
+import com.jmef.MixtureModel;
+import com.jmef.PVector;
+import com.jmef.UnivariateGaussian;
+import com.jmef.tools.ExpectationMaximization1D;
+import com.jmef.tools.KMeans;
 
 public class Tutorial2 {
 

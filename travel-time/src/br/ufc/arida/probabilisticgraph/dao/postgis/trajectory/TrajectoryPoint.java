@@ -1,4 +1,4 @@
-package br.uf.arida.traveltime.dao.postgis.trajectory;
+package br.ufc.arida.probabilisticgraph.dao.postgis.trajectory;
 
 import java.time.LocalDateTime;
 

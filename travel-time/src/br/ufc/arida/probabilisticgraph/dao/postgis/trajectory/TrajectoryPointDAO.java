@@ -1,4 +1,4 @@
-package br.uf.arida.traveltime.dao.postgis.trajectory;
+package br.ufc.arida.probabilisticgraph.dao.postgis.trajectory;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -17,7 +17,7 @@ import java.util.Vector;
 
 import com.vividsolutions.jts.geom.Coordinate;
 
-import br.uf.arida.traveltime.dao.postgis.ConnectionJDBC;
+import br.ufc.arida.probabilisticgraph.dao.postgis.ConnectionJDBC;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
 import fr.david.netcutis.mapmatching.Edge;
 import fr.david.netcutis.mapmatching.MapMatchingTrajectory;

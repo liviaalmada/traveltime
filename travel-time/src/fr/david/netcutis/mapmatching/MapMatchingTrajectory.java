@@ -17,7 +17,7 @@ import com.github.davidmoten.rtree.geometry.Geometries;
 import com.github.davidmoten.rtree.geometry.Line;
 import com.vividsolutions.jts.geom.Coordinate;
 
-import br.uf.arida.traveltime.experiments.RunMapMatching;
+import br.ufc.arida.traveltime.test.RunMapMatching;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
 
 public class MapMatchingTrajectory {

@@ -1,4 +1,4 @@
-package br.uf.arida.traveltime.model;
+package fr.david.netcutis.mapmatching;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -7,7 +7,6 @@ import java.util.Iterator;
 import com.vividsolutions.jts.geom.Coordinate;
 
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
-import fr.david.netcutis.mapmatching.Edge;
 
 public class ConstrainedTrajectory {
 	private TrajectoryAsSet trajectoryAsSet;

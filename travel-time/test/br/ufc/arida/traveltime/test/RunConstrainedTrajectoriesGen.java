@@ -1,4 +1,4 @@
-package br.uf.arida.traveltime.experiments;
+package br.ufc.arida.traveltime.test;
 
 import java.io.IOException;
 import java.sql.SQLException;
@@ -11,10 +11,10 @@ import java.util.logging.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import br.uf.arida.traveltime.dao.postgis.trajectory.ConstrainedTrajectoryDao;
-import br.uf.arida.traveltime.dao.postgis.trajectory.TrajectoryPointDAO;
-import br.uf.arida.traveltime.model.ConstrainedTrajectory;
+import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.ConstrainedTrajectoryDao;
+import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.TrajectoryPointDAO;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
+import fr.david.netcutis.mapmatching.ConstrainedTrajectory;
 
 public class RunConstrainedTrajectoriesGen {
 	protected static final Logger LOGGER = Logger.getGlobal();

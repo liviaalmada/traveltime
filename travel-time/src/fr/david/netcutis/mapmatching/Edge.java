@@ -5,9 +5,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 public class Edge {
 
-	private int id;
 	private int road_id;
-	private double offset;
 	private int vertex_source_id;
 	private int vertex_target_id;
 	private Coordinate source;
@@ -48,14 +46,6 @@ public class Edge {
 		this.setSource(c);
 	}
 	
-	public double getOffset() {
-		return offset;
-	}
-
-	public void setOffset(double offset) {
-		this.offset = offset;
-	}
-
 	public Coordinate getSource() {
 		return source;
 	}

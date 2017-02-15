@@ -5,12 +5,13 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Vector;
 
-import Tools.ExpectationMaximization1D;
-import Tools.KMeans;
-import br.ufc.arida.traveltime.dao.postgis.trajectory.ConstrainedTrajectoryDao;
-import jMEF.MixtureModel;
-import jMEF.PVector;
-import jMEF.UnivariateGaussian;
+import com.jmef.MixtureModel;
+import com.jmef.PVector;
+import com.jmef.UnivariateGaussian;
+import com.jmef.tools.ExpectationMaximization1D;
+import com.jmef.tools.KMeans;
+
+import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.ConstrainedTrajectoryDao;
 
 public class GaussianTravelTime {
 	public static void main(String[] args) {
@@ -40,7 +41,8 @@ public class GaussianTravelTime {
 				System.out.println("Mixure model estimated using classical EM \n" + mmc+ "\n");
 				
 				for (int i = 0; i < mmc.param.length; i++) {
-					System.out.println(mmc.param[i].toString());;
+					
+					System.out.println(mmc.param[i].toString());
 				}
 			}
 		
