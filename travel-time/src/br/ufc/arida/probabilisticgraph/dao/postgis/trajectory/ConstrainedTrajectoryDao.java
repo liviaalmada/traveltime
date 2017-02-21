@@ -55,6 +55,9 @@ public class ConstrainedTrajectoryDao {
 	}
 	
 	// TODO: put thie method in other dao 
+	/*
+	 * Get travel time in seconds
+	 */
 	public TravelCostTimeSeries getTravelCostTimeSeries(int edgeId)
 			throws ClassNotFoundException, SQLException, IOException {
 		Connection connection = ConnectionJDBC.getConnection();
@@ -66,7 +69,7 @@ public class ConstrainedTrajectoryDao {
 		TravelCostTimeSeries timeSeries = new TravelCostTimeSeries(edgeId, 96);
 		
 		while (resultSet.next()) {
-			double cost = resultSet.getInt("travel_time");
+			double cost = resultSet.getInt("travel_time")/1000;
 			int interval =resultSet.getInt("time_interval");
 			timeSeries.addTravelCost(cost, interval);;
 		}

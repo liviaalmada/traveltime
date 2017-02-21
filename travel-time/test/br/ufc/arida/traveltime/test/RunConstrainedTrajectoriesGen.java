@@ -22,7 +22,7 @@ public class RunConstrainedTrajectoriesGen {
 
 	public static void main(String[] args) {
 		TrajectoryPointDAO dao = new TrajectoryPointDAO();
-		int startDay=1, endDay=8;
+		int startDay=8, endDay=10;
 		for (int i = startDay; i < endDay; i++) {
 			LocalDate d = LocalDate.of(2016, 6, i);
 			ZoneId zoneId = ZoneId.of("GMT-3");

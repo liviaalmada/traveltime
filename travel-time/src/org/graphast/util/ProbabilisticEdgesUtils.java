@@ -4,6 +4,10 @@ package org.graphast.util;
 // *** IMPORTS *** //
 
 import java.util.Vector;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.io.PrintWriter;
 import java.io.IOException;
 
@@ -155,6 +159,58 @@ public class ProbabilisticEdgesUtils
         return cdf((x - mu) / sigma);
     }
 	
+	
+	/**
+	 * This method computes the cumulative distribution function for a given "x" value.
+	 * 
+	 * @param x the input of the CDF.
+	 * @return The CDF's output value.
+	 */
+	public static double computeCDFMixture(MixtureModel f, double x)
+	{
+		// TODO: Da testare!! In teoria dovrebbe andare sulle singole componenti...da testare sulle mixture
+		//		 multi-componente.
+		double value = 0;
+		PVector[] parametersComponent = (PVector[]) f.param;
+		for(int i = 0; i < f.size; i++)
+		{
+			// Calculation => i_th Gaussian component's weight * cdf(x, i_th component's mu, i_th component's sigma)
+			value += f.weight[i] * ProbabilisticEdgesUtils.cdf(x, parametersComponent[i].array[0], parametersComponent[i].array[1]);
+		}
+		
+		return(value);
+	}
+	
+	/**
+	 * This method computes the probability density function for a given "x" value.
+	 * 
+	 * @param x the input of the PDF.
+	 * @return The PDF's output value.
+	 */
+	public static double computePDFMixture(MixtureModel f, double x)
+	{
+		// TODO: Da testare!!
+		PVector value = new PVector(1); value.array[0] = x;
+		return(f.density(value));
+	}
+	
+	/**
+	 * Computes the log likelihood of a given mixture.
+	 * @param   setPoints  Set of points.
+	 * @param   f Mixture model.
+	 * @return  Log-likelihood.
+	 */
+	public static double computeLogLikelihood(PVector[] setPoints, MixtureModel f)
+	{
+		// NOTE: the idea is that, the more the mixture "f" fits the data in "setPoints", the higher
+		// is the ll value. Ideally, a perfect mixture achieves a score of 0.
+		double ll = 0;
+		for(int i = 0; i < setPoints.length; i++)
+			ll += Math.log(f.density(setPoints[i]));
+		
+		return(ll);
+	}
+	
 	/**
 	 * This static method returns a mixture of Gaussian distribution from a set of values.
 	 * The method uses the Bregman soft clustering. 
@@ -200,20 +256,67 @@ public class ProbabilisticEdgesUtils
 	}
 	
 	/**
-	 * Computes the log likelihood of a given mixture.
-	 * @param   setPoints  Set of points.
-	 * @param   f Mixture model.
-	 * @return  Log-likelihood.
+	 * This static method returns a mixture of Gaussian distribution from a set of values.
+	 * The method uses the classical Expectation Maximization approach combined with a k-fold
+	 * cross-validation approach. 
+	 * 
+	 * @param setValues The values from which we want to build the mixture.
+	 * @param k The number of partitions into which we split "setValues" to perform the
+	 * 		  k-fold cross validation.
+	 * 
+	 * @return A mixture of Gaussian distributions.
 	 */
-	public static double computeLogLikelihood(PVector[] setPoints, MixtureModel f)
-	{
-		double ll = 0;
-		for(int i = 0; i < setPoints.length; i++)
-			ll += Math.log(f.density(setPoints[i]));
+	public static MixtureModel produceMixtureKFold(PVector[] setValues, int k)
+	{	
+		// *** Generate a random permutation of "setValues" *** //
+		List<PVector> setValuesPermuted = new ArrayList<>(Arrays.asList(setValues));
+		Collections.shuffle(setValuesPermuted);
 		
-		return(ll);
+		
+		// *** Partition the data *** //
+		int sizePartition = setValues.length / k;
+		List<PVector[]> partitions = new ArrayList<>(Collections.nCopies(k, new PVector[sizePartition]));
+		for(int i = 0; i < k; i++)
+		{
+			int offset = i * sizePartition;
+			for(int j = 0; j < sizePartition; j++)
+				(partitions.get(i))[j] = setValuesPermuted.get(offset + j);
+		}
+		setValuesPermuted = null;
+		
+		
+		// *** Perform the k-fold cross-validation. *** //
+		double llscoreNew = Double.NEGATIVE_INFINITY, llscoreOld = Double.NEGATIVE_INFINITY;
+		MixtureModel mmcOld = null, mmcNew = null;
+		List<PVector> tmpList = null;
+		int numClusters = 0;
+		do
+		{
+			// Perform the cross validation.
+			numClusters++; 
+			mmcOld = mmcNew; 
+			llscoreOld = llscoreNew; llscoreNew = 0;
+			for(int idxPartition = 0; idxPartition < k; idxPartition++)
+			{
+				// *** Generate the mixture, from the training set, by means of the Bregman soft clustering approach *** //
+				mmcNew = ProbabilisticEdgesUtils.produceMixtureBregmanSoft(partitions.get(idxPartition), numClusters);
+				
+				// *** Test phase *** //
+				// 1 - Generate the test set from the partitions.
+				tmpList = new ArrayList<>();
+				for(int idx = 0; idx < k; idx++) 
+					if(idx != idxPartition) tmpList.addAll(Arrays.asList(partitions.get(idx)));
+				
+				// 2 - Accumulate the log-likelihood scores.
+				llscoreNew += ProbabilisticEdgesUtils.computeLogLikelihood(tmpList.toArray(new PVector[tmpList.size()]), mmcNew);
+			}
+		} while(llscoreNew > llscoreOld);
+
+		
+		return(mmcOld);
 	}
 	
+		
 	
 	
 	// *** PUBLIC STATIC METHODS *** //
