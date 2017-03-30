@@ -11,8 +11,8 @@ import java.util.logging.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.ConstrainedTrajectoryDao;
-import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.TrajectoryPointDAO;
+import br.ufc.arida.analysis.dao.ConstrainedTrajectoryDao;
+import br.ufc.arida.analysis.dao.TrajectoryPointDAO;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
 import fr.david.netcutis.mapmatching.ConstrainedTrajectory;
 

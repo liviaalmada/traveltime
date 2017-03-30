@@ -7,7 +7,7 @@ import org.graphast.model.GraphImpl;
 
 import br.ufc.arida.analysis.dao.PGRountingGraphDAO;
 import br.ufc.arida.analysis.dao.ProbabilisticCostsDAO;
-import br.ufc.arida.analysis.timeseries.model.ProbabilisticGraph;
+import br.ufc.arida.analysis.model.ProbabilisticGraph;
 
 public class ProbabilisticGraphTest {
 	public static void main(String[] args) {

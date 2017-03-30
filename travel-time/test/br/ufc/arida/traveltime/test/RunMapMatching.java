@@ -13,7 +13,7 @@ import java.util.logging.Logger;
 
 import org.slf4j.LoggerFactory;
 
-import br.ufc.arida.probabilisticgraph.dao.postgis.trajectory.TrajectoryPointDAO;
+import br.ufc.arida.analysis.dao.TrajectoryPointDAO;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
 import fr.david.netcutis.mapmatching.Edge;
 import fr.david.netcutis.mapmatching.MapMatchingTrajectory;

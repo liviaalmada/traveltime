@@ -2,7 +2,7 @@ package br.ufc.arida.traveltime.test;
 
 import com.jmef.MixtureModel;
 
-import br.ufc.arida.analysis.timeseries.model.ProbabilisticGraph;
+import br.ufc.arida.analysis.model.ProbabilisticGraph;
 
 public class ReadProbabilisticGraph {
 	public static void main(String[] args) {

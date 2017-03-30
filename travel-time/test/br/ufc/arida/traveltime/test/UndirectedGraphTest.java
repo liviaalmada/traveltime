@@ -7,7 +7,7 @@ import org.graphast.query.route.shortestpath.ShortestPathService;
 import org.graphast.query.route.shortestpath.astar.AStarConstantWeight;
 import org.graphast.query.route.shortestpath.model.Path;
 
-import br.ufc.arida.analysis.timeseries.model.UndirectedGraphImpl;
+import br.ufc.arida.analysis.model.UndirectedGraphImpl;
 
 public class UndirectedGraphTest {
 
