@@ -15,6 +15,10 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.geotools.geometry.jts.JTSFactoryFinder;
+import org.geotools.referencing.CRS;
+import org.geotools.referencing.GeodeticCalculator;
+import org.opengis.referencing.FactoryException;
+import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.slf4j.LoggerFactory;
 
 import com.graphhopper.GraphHopper;
@@ -23,18 +27,20 @@ import com.graphhopper.matching.GPXExtension;
 import com.graphhopper.matching.LocationIndexMatch;
 import com.graphhopper.matching.MapMatching;
 import com.graphhopper.matching.MatchResult;
+import com.graphhopper.routing.Path;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndexTree;
+import com.graphhopper.util.DistanceCalc2D;
 import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.CoordinateSequence;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
+import com.vividsolutions.jts.geom.PrecisionModel;
 
 import br.ufc.arida.analysis.dao.TrajectoryPointDAO;
 import br.ufc.arida.traveltime.test.RunMapMatching;
@@ -55,95 +61,113 @@ public class RunGraphHopperMapMatchingSpeed {
 		hopper.setCHEnable(false);
 		hopper.importOrLoad();
 	}
-	
-//	public boolean isPointInLine(Point point, Point start, Point end) {
-//		
-//	}
+
+	public static boolean isPointInLine(Point point, Point start, Point end) {
+		if (start.distance(point) + point.distance(end) == start.distance(end))
+			return true;
+
+		return false;
+	}
+
+	public static boolean isPointInLine(Point point, LineString line) {
+		if (line.distance(point) < 0.001)
+			return true;
+		return false;
+	}
+
+	public static double getDistanceInMeters(double angularDistance) {
+		return angularDistance * (Math.PI / 180) * 6378137;
+	}
 
 	public static void estimateSpeed(List<EdgeMatch> matches) {
 		List<EdgeMatch> linksToDistributeSpeed = new ArrayList<>();
 		Map<Integer, Double> mapLinkToSpeed = new HashMap<>();
 		double totalLenght = 0, startDelta = 0, endDelta = 0;
 		boolean firstFound = false, lastFound = false;
-		int firstValidEdge = -1;
-		GPXEntry gpsLast  = null, gpsFirst = null;
+		GPXEntry gpsLast = null, gpsFirst = null;
 		Point last = null, first = null;
 		for (int i = 0; i < matches.size(); i++) {
 			EdgeMatch edgeMatch = matches.get(i);
-			if(firstValidEdge<0){
-				firstValidEdge = i;
-			}			
-			
+
+			// Get gps points in the actual edge
 			List<GPXExtension> gpsCorrected = edgeMatch.getGpxExtensions();
+			// Get edge geometry
 			PointList geometry = edgeMatch.getEdgeState().fetchWayGeometry(3);
 			Coordinate[] coords = getCoordinates(geometry);
 			linksToDistributeSpeed.add(edgeMatch);
 
-			if (gpsCorrected.size() == 0) {
+			if (gpsCorrected.size() <= 1) {
 				LineString lineString = geoFactory.createLineString(coords);
-				totalLenght += lineString.getLength();
+				totalLenght += getDistanceInMeters(lineString.getLength());
 				continue;
 			}
 
-			if(!firstFound){
+			if (!firstFound) {
 				gpsFirst = gpsCorrected.get(0).getEntry();
 				first = geoFactory.createPoint(new Coordinate(gpsFirst.lon, gpsFirst.lat));
-			}			
-			
-			if(gpsCorrected.size()>1){
-				gpsLast = gpsCorrected.get(gpsCorrected.size() - 1).getEntry();			
+			}
+
+			if (!lastFound) {
+				gpsLast = gpsCorrected.get(gpsCorrected.size() - 1).getEntry();
 				last = geoFactory.createPoint(new Coordinate(gpsLast.lon, gpsLast.lat));
 			}
-			
 
 			for (int j = 0; j < coords.length - 1; j++) {
 				LineString lineString = geoFactory.createLineString(Arrays.copyOfRange(coords, j, j + 2));
 				if (!firstFound) {
-					if (first.touches(lineString)) {
+					if (isPointInLine(first, lineString)) {
 						firstFound = true;
 						// start delta do inicio da linha até o ponto de gps
-						startDelta += geoFactory.createLineString(
-								new Coordinate[] { lineString.getStartPoint().getCoordinate(), first.getCoordinate() })
-								.getLength();
+						startDelta += getDistanceInMeters(lineString.getStartPoint().distance(first));
 						// total do gps até o fim da linha
-						totalLenght += geoFactory.createLineString(
-								new Coordinate[] { first.getCoordinate(), lineString.getEndPoint().getCoordinate() })
-								.getLength();
+						totalLenght += getDistanceInMeters(first.distance(lineString.getEndPoint()));
 					} else {
-						startDelta += lineString.getLength();
+						startDelta += getDistanceInMeters(lineString.getLength());
 					}
-				} else if (firstFound && !lastFound && gpsLast!=null) {
-					if (last.touches(lineString)) {
+				} else if (firstFound && !lastFound && gpsLast != null) {
+					if (isPointInLine(last, lineString)) {
 						lastFound = true;
-						// end delta do ponto de gps até o final da linha 
-						endDelta += geoFactory.createLineString(
-								new Coordinate[] { last.getCoordinate(), lineString.getEndPoint().getCoordinate()})
-								.getLength();
+						// end delta do ponto de gps até o final da linha
+						endDelta += getDistanceInMeters(last.distance(lineString.getEndPoint()));
+
 						// total do início da linha até o ponto de gps
-						totalLenght += geoFactory.createLineString(
-								new Coordinate[] { lineString.getStartPoint().getCoordinate(), last.getCoordinate()})
-								.getLength();
-					} else{
-						totalLenght += lineString.getLength();
+						totalLenght += getDistanceInMeters(lineString.getStartPoint().distance(last));
+
+					} else {
+						totalLenght += getDistanceInMeters(lineString.getLength());
 					}
-				}else{
-					endDelta += lineString.getLength();
+				} else {
+					endDelta += getDistanceInMeters(lineString.getLength());
 				}
 			}
-			
-			if(firstFound && lastFound){
-				double speed = totalLenght/(gpsLast.getTime() - gpsFirst.getTime());	
+
+			if (firstFound && lastFound) {
+				double speed = totalLenght / (gpsLast.getTime() - gpsFirst.getTime()) * 1000;
+				System.out.println("Edge: " + edgeMatch.getEdgeState().getEdge() + " Time :"
+						+ (gpsLast.getTime() - gpsFirst.getTime()) + " From, to: " + gpsFirst.getTime() + " "
+						+ gpsLast.getTime() + " Length: " + totalLenght);
+				mapLinkToSpeed.put(edgeMatch.getEdgeState().getEdge(), msTokmh(speed));
 				for (EdgeMatch edge : linksToDistributeSpeed) {
-					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), speed);
+					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), msTokmh(speed));
 				}
 				linksToDistributeSpeed.clear();
+				totalLenght = 0;
+				endDelta = 0;
+				startDelta = 0;
+				firstFound = false;
+				lastFound = false;
 			}
 
 		}
-		
+
 		System.out.println(mapLinkToSpeed);
 	}
 
+	private static double msTokmh(double speed) {
+		return speed * 3.6;
+	}
+
+	
 	private static Coordinate[] getCoordinates(PointList g) {
 		Coordinate[] coords = new Coordinate[g.size()];
 
@@ -170,18 +194,18 @@ public class RunGraphHopperMapMatchingSpeed {
 			LocationIndexTree paramIndex = (LocationIndexTree) hopper.getLocationIndex();
 			LocationIndexMatch locationIndex = new LocationIndexMatch(graph, paramIndex, gpxAccuracy);
 			MapMatching mapMatching = new MapMatching(graph, locationIndex, firstEncoder);
-			mapMatching.setSeparatedSearchDistance(500);
+			mapMatching.setSeparatedSearchDistance(150);
 			mapMatching.setMaxNodesToVisit(1000);
-			mapMatching.setForceRepair(false);
+			mapMatching.setForceRepair(true);
 
 			int startDay = Integer.parseInt(args[0]);
 			int endDay = Integer.parseInt(args[1]);// including start day and
 													// excluding
 			// end day
-			int startHour = 14; //Integer.parseInt(args[2]), 
-			int endHour = 17; //Integer.parseInt(args[3]); // including
-																							// startHour
-																							// and
+			int startHour = 14; // Integer.parseInt(args[2]),
+			int endHour = 17; // Integer.parseInt(args[3]); // including
+								// startHour
+								// and
 			// excluding endHour
 			TrajectoryPointDAO dao = new TrajectoryPointDAO();
 			ZoneId zoneId = ZoneId.of("GMT-3");
@@ -221,12 +245,21 @@ public class RunGraphHopperMapMatchingSpeed {
 									// GPX entries
 
 									List<EdgeMatch> matches = mr.getEdgeMatches();
+									Path path = mapMatching.calcPath(mr);
+									// System.out.println(path.getDistance());
+									// System.out.println(mr.getMatchLength());
+									// System.out.println(mr.getMatchMillis());
+									//
+									// PointList points = path.calcPoints();
+									// System.out.println(points);
+									// System.out.println(path.calcEdges());
+									// System.out.println(path.getTime());
 									estimateSpeed(matches);
 									PointList pointList = matches.get(0).getEdgeState().fetchWayGeometry(3);
 									// pointList.
 									matches.get(0).getEdgeState().getEdge();
 									matches.get(0).getGpxExtensions().get(0).getEntry().getTime();
-									
+
 									// now do something with the edges like
 									// storing
 									// the edgeIds or doing
@@ -236,7 +269,7 @@ public class RunGraphHopperMapMatchingSpeed {
 									matches.get(0).getEdgeState();
 									System.out.println(matches);
 									return;
-									
+
 								} catch (Exception e) {
 									e.printStackTrace();
 								}
