@@ -36,6 +36,7 @@ import com.graphhopper.storage.index.LocationIndexTree;
 import com.graphhopper.util.DistanceCalc2D;
 import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
+import com.graphhopper.util.shapes.GHPoint3D;
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
@@ -70,7 +71,7 @@ public class RunGraphHopperMapMatchingSpeed {
 	}
 
 	public static boolean isPointInLine(Point point, LineString line) {
-		if (line.distance(point) < 0.001)
+		if (getDistanceInMeters(line.distance(point)) < 0.1)
 			return true;
 		return false;
 	}
@@ -82,10 +83,11 @@ public class RunGraphHopperMapMatchingSpeed {
 	public static void estimateSpeed(List<EdgeMatch> matches) {
 		List<EdgeMatch> linksToDistributeSpeed = new ArrayList<>();
 		Map<Integer, Double> mapLinkToSpeed = new HashMap<>();
-		double totalLenght = 0, startDelta = 0, endDelta = 0;
+		double totalLenght = 0, endDelta = 0;
 		boolean firstFound = false, lastFound = false;
-		GPXEntry gpsLast = null, gpsFirst = null;
+		GHPoint3D gpsLast = null, gpsFirst = null;
 		Point last = null, first = null;
+		long timeFirst = 0, timeLast = 0;
 		for (int i = 0; i < matches.size(); i++) {
 			EdgeMatch edgeMatch = matches.get(i);
 
@@ -103,13 +105,15 @@ public class RunGraphHopperMapMatchingSpeed {
 			}
 
 			if (!firstFound) {
-				gpsFirst = gpsCorrected.get(0).getEntry();
+				gpsFirst = gpsCorrected.get(0).getQueryResult().getSnappedPoint();
+				timeFirst = gpsCorrected.get(0).getEntry().getTime();
 				first = geoFactory.createPoint(new Coordinate(gpsFirst.lon, gpsFirst.lat));
 			}
 
 			if (!lastFound) {
-				gpsLast = gpsCorrected.get(gpsCorrected.size() - 1).getEntry();
+				gpsLast = gpsCorrected.get(gpsCorrected.size() - 1).getQueryResult().getSnappedPoint();
 				last = geoFactory.createPoint(new Coordinate(gpsLast.lon, gpsLast.lat));
+				timeLast = gpsCorrected.get(gpsCorrected.size() - 1).getEntry().getTime();
 			}
 
 			for (int j = 0; j < coords.length - 1; j++) {
@@ -117,14 +121,11 @@ public class RunGraphHopperMapMatchingSpeed {
 				if (!firstFound) {
 					if (isPointInLine(first, lineString)) {
 						firstFound = true;
-						// start delta do inicio da linha até o ponto de gps
-						startDelta += getDistanceInMeters(lineString.getStartPoint().distance(first));
-						// total do gps até o fim da linha
 						totalLenght += getDistanceInMeters(first.distance(lineString.getEndPoint()));
-					} else {
-						startDelta += getDistanceInMeters(lineString.getLength());
 					}
-				} else if (firstFound && !lastFound && gpsLast != null) {
+				}
+
+				if (firstFound && !lastFound && gpsLast != null) {
 					if (isPointInLine(last, lineString)) {
 						lastFound = true;
 						// end delta do ponto de gps até o final da linha
@@ -142,20 +143,20 @@ public class RunGraphHopperMapMatchingSpeed {
 			}
 
 			if (firstFound && lastFound) {
-				double speed = totalLenght / (gpsLast.getTime() - gpsFirst.getTime()) * 1000;
-				System.out.println("Edge: " + edgeMatch.getEdgeState().getEdge() + " Time :"
-						+ (gpsLast.getTime() - gpsFirst.getTime()) + " From, to: " + gpsFirst.getTime() + " "
-						+ gpsLast.getTime() + " Length: " + totalLenght);
-				mapLinkToSpeed.put(edgeMatch.getEdgeState().getEdge(), msTokmh(speed));
+				double speed = msTokmh(totalLenght / (timeLast - timeFirst) * 1000);
+				System.out.println("Edge: " + edgeMatch.getEdgeState().getEdge() + " Time :" + (timeLast - timeFirst)
+						+ " From, to: " + timeFirst + " " + timeLast + " Length: " + totalLenght);
+				mapLinkToSpeed.put(edgeMatch.getEdgeState().getEdge(), speed);
 				for (EdgeMatch edge : linksToDistributeSpeed) {
-					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), msTokmh(speed));
+					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), speed);
 				}
 				linksToDistributeSpeed.clear();
-				totalLenght = 0;
+				totalLenght = endDelta;
 				endDelta = 0;
-				startDelta = 0;
-				firstFound = false;
+				firstFound = true;
 				lastFound = false;
+				timeFirst = timeLast;
+				gpsFirst = gpsLast;
 			}
 
 		}
@@ -167,7 +168,6 @@ public class RunGraphHopperMapMatchingSpeed {
 		return speed * 3.6;
 	}
 
-	
 	private static Coordinate[] getCoordinates(PointList g) {
 		Coordinate[] coords = new Coordinate[g.size()];
 
