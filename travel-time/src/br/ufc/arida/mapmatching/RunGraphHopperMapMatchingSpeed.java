@@ -1,5 +1,7 @@
 package br.ufc.arida.mapmatching;
 
+import java.io.File;
+import java.io.FileWriter;
 import java.io.IOException;
 import java.sql.SQLException;
 import java.time.LocalDate;
@@ -15,10 +17,6 @@ import java.util.Set;
 import java.util.logging.Logger;
 
 import org.geotools.geometry.jts.JTSFactoryFinder;
-import org.geotools.referencing.CRS;
-import org.geotools.referencing.GeodeticCalculator;
-import org.opengis.referencing.FactoryException;
-import org.opengis.referencing.NoSuchAuthorityCodeException;
 import org.slf4j.LoggerFactory;
 
 import com.graphhopper.GraphHopper;
@@ -27,13 +25,11 @@ import com.graphhopper.matching.GPXExtension;
 import com.graphhopper.matching.LocationIndexMatch;
 import com.graphhopper.matching.MapMatching;
 import com.graphhopper.matching.MatchResult;
-import com.graphhopper.routing.Path;
 import com.graphhopper.routing.util.CarFlagEncoder;
 import com.graphhopper.routing.util.EncodingManager;
 import com.graphhopper.routing.util.FlagEncoder;
 import com.graphhopper.storage.GraphHopperStorage;
 import com.graphhopper.storage.index.LocationIndexTree;
-import com.graphhopper.util.DistanceCalc2D;
 import com.graphhopper.util.GPXEntry;
 import com.graphhopper.util.PointList;
 import com.graphhopper.util.shapes.GHPoint3D;
@@ -41,7 +37,6 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
-import com.vividsolutions.jts.geom.PrecisionModel;
 
 import br.ufc.arida.analysis.dao.TrajectoryPointDAO;
 import br.ufc.arida.traveltime.test.RunMapMatching;
@@ -55,19 +50,20 @@ public class RunGraphHopperMapMatchingSpeed {
 	private static org.slf4j.Logger log = LoggerFactory.getLogger(RunMapMatching.class);
 	private static GeometryFactory geoFactory = JTSFactoryFinder.getGeometryFactory();
 
-	public static void doImport() {
-		hopper.setOSMFile("/media/livia/DATA/DADOS/osm-fortaleza.osm");
-		hopper.setGraphHopperLocation("/home/livia/git/traveltime/travel-time/resources");
+	private static class SpeedMatch {
+		EdgeMatch edgeMacth;
+		double speed;
+		double timestamp;
+		double travelTime;
+
+	}
+
+	public static void doImport(String osmFilePath, String graphHopperLocation) {
+		hopper.setOSMFile(osmFilePath);
+		hopper.setGraphHopperLocation(graphHopperLocation);
 		hopper.setEncodingManager(new EncodingManager(encoder));
 		hopper.setCHEnable(false);
 		hopper.importOrLoad();
-	}
-
-	public static boolean isPointInLine(Point point, Point start, Point end) {
-		if (start.distance(point) + point.distance(end) == start.distance(end))
-			return true;
-
-		return false;
 	}
 
 	public static boolean isPointInLine(Point point, LineString line) {
@@ -80,9 +76,9 @@ public class RunGraphHopperMapMatchingSpeed {
 		return angularDistance * (Math.PI / 180) * 6378137;
 	}
 
-	public static void estimateSpeed(List<EdgeMatch> matches) {
+	private static Map<Integer, SpeedMatch> estimateSpeed(List<EdgeMatch> matches) {
 		List<EdgeMatch> linksToDistributeSpeed = new ArrayList<>();
-		Map<Integer, Double> mapLinkToSpeed = new HashMap<>();
+		Map<Integer, SpeedMatch> mapLinkToSpeed = new HashMap<>();
 		double totalLenght = 0, endDelta = 0;
 		boolean firstFound = false, lastFound = false;
 		GHPoint3D gpsLast = null, gpsFirst = null;
@@ -144,11 +140,39 @@ public class RunGraphHopperMapMatchingSpeed {
 
 			if (firstFound && lastFound) {
 				double speed = msTokmh(totalLenght / (timeLast - timeFirst) * 1000);
-				System.out.println("Edge: " + edgeMatch.getEdgeState().getEdge() + " Time :" + (timeLast - timeFirst)
-						+ " From, to: " + timeFirst + " " + timeLast + " Length: " + totalLenght);
-				mapLinkToSpeed.put(edgeMatch.getEdgeState().getEdge(), speed);
+				linksToDistributeSpeed.add(edgeMatch);
+				double nextTimestamp = -1;
+
 				for (EdgeMatch edge : linksToDistributeSpeed) {
-					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), speed);
+					SpeedMatch speedMatch = new SpeedMatch();
+					speedMatch.edgeMacth = edgeMatch;
+					speedMatch.speed = speed;
+
+					if (nextTimestamp == -1) {
+						speedMatch.timestamp = edgeMatch.getGpxExtensions().get(0).getEntry().getTime();
+						GHPoint3D point = edgeMatch.getGpxExtensions().get(0).getQueryResult().getSnappedPoint();
+						Point p = geoFactory.createPoint(new Coordinate(point.lat, point.lon));
+						PointList pointList = edgeMatch.getEdgeState().fetchWayGeometry(3);
+						double distanceInMeters = getDistanceInMeters(p.distance(
+								geoFactory.createPoint(new Coordinate(pointList.getLongitude(pointList.getSize() - 1),
+										pointList.getLatitude(pointList.getSize() - 1)))));
+						speedMatch.travelTime = distanceInMeters / speed;
+						nextTimestamp = speedMatch.timestamp + speedMatch.travelTime;
+					} else {
+						speedMatch.timestamp = nextTimestamp;
+						PointList pointList = edgeMatch.getEdgeState().fetchWayGeometry(3);
+						Point p1 = geoFactory
+								.createPoint(new Coordinate(pointList.getLongitude(0), pointList.getLatitude(0)));
+						Point p2 = geoFactory
+								.createPoint(new Coordinate(pointList.getLongitude(pointList.getSize() - 1),
+										pointList.getLatitude(pointList.getSize() - 1)));
+						double distanceInMeters = getDistanceInMeters(p1.distance(p2));
+
+						speedMatch.travelTime = distanceInMeters / speed;
+						nextTimestamp = speedMatch.timestamp + speedMatch.travelTime;
+					}
+
+					mapLinkToSpeed.put(edge.getEdgeState().getEdge(), speedMatch);
 				}
 				linksToDistributeSpeed.clear();
 				totalLenght = endDelta;
@@ -161,7 +185,7 @@ public class RunGraphHopperMapMatchingSpeed {
 
 		}
 
-		System.out.println(mapLinkToSpeed);
+		return mapLinkToSpeed;
 	}
 
 	private static double msTokmh(double speed) {
@@ -181,125 +205,127 @@ public class RunGraphHopperMapMatchingSpeed {
 	public static void main(String[] args) {
 
 		if (args.length == 4) {
-			// Read osm file as a Graph
-
-			doImport();
-
-			// create MapMatching object, can and should be shared accross
-			// threads
-			GraphHopperStorage graph = hopper.getGraphHopperStorage();
-			FlagEncoder firstEncoder = hopper.getEncodingManager().fetchEdgeEncoders().get(0);
-			int gpxAccuracy = 110;
-			log.info("Setup lookup index. Accuracy filter is at " + gpxAccuracy + "m");
-			LocationIndexTree paramIndex = (LocationIndexTree) hopper.getLocationIndex();
-			LocationIndexMatch locationIndex = new LocationIndexMatch(graph, paramIndex, gpxAccuracy);
-			MapMatching mapMatching = new MapMatching(graph, locationIndex, firstEncoder);
-			mapMatching.setSeparatedSearchDistance(150);
-			mapMatching.setMaxNodesToVisit(1000);
-			mapMatching.setForceRepair(true);
-
-			int startDay = Integer.parseInt(args[0]);
-			int endDay = Integer.parseInt(args[1]);// including start day and
-													// excluding
+			int startDay = 1; // Integer.parseInt(args[0]);
+			int endDay = 7;// Integer.parseInt(args[1]);// including start day
+							// and
+							// excluding
 			// end day
-			int startHour = 14; // Integer.parseInt(args[2]),
-			int endHour = 17; // Integer.parseInt(args[3]); // including
+			int startHour = 0; // Integer.parseInt(args[2]),
+			int endHour = 23; // Integer.parseInt(args[3]); // including
 								// startHour
 								// and
-			// excluding endHour
-			TrajectoryPointDAO dao = new TrajectoryPointDAO();
-			ZoneId zoneId = ZoneId.of("GMT-3");
-			Set<Edge> edges;
-
+			// Read osm file as a Graph
+			String osm = "/media/livia/DATA/DADOS/osm-fortaleza.osm";
+			String graphHopper = "/home/livia/git/traveltime/travel-time/resources";
 			try {
-
-				edges = dao.getEdges();
-				int count = 0;
-				log.info(edges.size() + " edges were retrieved...\n");
-				for (int day = startDay; day < endDay; day++) {
-					for (int hour = startHour; hour < endHour; hour++) {
-						LocalDate d = LocalDate.of(2016, 6, day);
-						ZonedDateTime zdt = ZonedDateTime.of(d, LocalTime.of(hour, 00, 00), zoneId);
-						ZonedDateTime zdt2 = ZonedDateTime.of(d, LocalTime.of(hour, 59, 59), zoneId);
-
-						java.sql.Timestamp startDatetime = java.sql.Timestamp.from(zdt.toInstant());
-						System.out.println(startDatetime.toString());
-						java.sql.Timestamp endDatetime = java.sql.Timestamp.from(zdt2.toInstant());
-						System.out.println(endDatetime.toString());
-
-						try {
-							// TODO LER TRAJETORIAS NO FORMATO GRAPH HOPPER
-							Map<Integer, List<GPXEntry>> trajectories = dao.readTrajectoriesAsGPXEntries("taxi_junho",
-									startDatetime, endDatetime);
-							List<MatchResult> results = new ArrayList<>();
-
-							for (List<GPXEntry> trajs : trajectories.values()) {
-								// do the actual matching, get the GPX entries
-								// from a file or via stream
-								try {
-									log.info("started!");
-									MatchResult mr = mapMatching.doWork(trajs);
-									results.add(mr);
-									// return GraphHopper edges with all
-									// associated
-									// GPX entries
-
-									List<EdgeMatch> matches = mr.getEdgeMatches();
-									Path path = mapMatching.calcPath(mr);
-									// System.out.println(path.getDistance());
-									// System.out.println(mr.getMatchLength());
-									// System.out.println(mr.getMatchMillis());
-									//
-									// PointList points = path.calcPoints();
-									// System.out.println(points);
-									// System.out.println(path.calcEdges());
-									// System.out.println(path.getTime());
-									estimateSpeed(matches);
-									PointList pointList = matches.get(0).getEdgeState().fetchWayGeometry(3);
-									// pointList.
-									matches.get(0).getEdgeState().getEdge();
-									matches.get(0).getGpxExtensions().get(0).getEntry().getTime();
-
-									// now do something with the edges like
-									// storing
-									// the edgeIds or doing
-									// fetchWayGeometry etc
-									count++;
-									System.out.println(count);
-									matches.get(0).getEdgeState();
-									System.out.println(matches);
-									return;
-
-								} catch (Exception e) {
-									e.printStackTrace();
-								}
-
-							}
-
-						} catch (ClassNotFoundException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (SQLException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						} catch (IOException e) {
-							// TODO Auto-generated catch block
-							e.printStackTrace();
-						}
-					}
+				FileWriter writer = new FileWriter(new File("map-matching-output"));
+				doImport(osm, graphHopper);
+				List<MatchResult> doMatching = doMatching(startDay, endDay, startHour, endHour);
+				for (MatchResult matchResult : doMatching) {
+					Map<Integer, SpeedMatch> estimatedSpeed = estimateSpeed(matchResult.getEdgeMatches());
+					doSaveMapMatching(writer, estimatedSpeed);
 				}
-			} catch (ClassNotFoundException e1) {
+				writer.close();
+			} catch (IOException e) {
 				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (SQLException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
-			} catch (IOException e1) {
-				// TODO Auto-generated catch block
-				e1.printStackTrace();
+				e.printStackTrace();
+			}
+		}
+
+	}
+
+	private static void doSaveMapMatching(FileWriter writer, Map<Integer, SpeedMatch> mapLinkToSpeed) {
+		try {
+
+			for (SpeedMatch speedMath : mapLinkToSpeed.values()) {
+				writer.write(speedMath.edgeMacth.getEdgeState().getEdge() + ", " + speedMath.timestamp + ", "
+						+ speedMath.speed + "\n");
 			}
 
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
 		}
+
+	}
+
+	private static List<MatchResult> doMatching(int startDay, int endDay, int startHour, int endHour) {
+		// create MapMatching object, can and should be shared across
+		// threads
+		GraphHopperStorage graph = hopper.getGraphHopperStorage();
+		FlagEncoder firstEncoder = hopper.getEncodingManager().fetchEdgeEncoders().get(0);
+		int gpxAccuracy = 110;
+		LocationIndexTree paramIndex = (LocationIndexTree) hopper.getLocationIndex();
+		LocationIndexMatch locationIndex = new LocationIndexMatch(graph, paramIndex, gpxAccuracy);
+		MapMatching mapMatching = new MapMatching(graph, locationIndex, firstEncoder);
+		mapMatching.setMaxNodesToVisit(1000);
+		mapMatching.setForceRepair(true);
+		TrajectoryPointDAO dao = new TrajectoryPointDAO();
+		ZoneId zoneId = ZoneId.of("GMT-3");
+
+		Set<Edge> edges;
+
+		try {
+
+			edges = dao.getEdges();
+			log.info(edges.size() + " edges were retrieved...\n");
+			for (int day = startDay; day < endDay; day++) {
+				// for (int hour = startHour; hour < endHour; hour++) {
+				LocalDate d = LocalDate.of(2016, 6, day);
+				ZonedDateTime zdt = ZonedDateTime.of(d, LocalTime.of(startHour, 00, 00), zoneId);
+				ZonedDateTime zdt2 = ZonedDateTime.of(d, LocalTime.of(endHour, 59, 59), zoneId);
+
+				java.sql.Timestamp startDatetime = java.sql.Timestamp.from(zdt.toInstant());
+				java.sql.Timestamp endDatetime = java.sql.Timestamp.from(zdt2.toInstant());
+				log.info("Getting trajectories from " + startDatetime + " to " + endDatetime);
+
+				try {
+					Map<Integer, List<GPXEntry>> trajectories = dao.readTrajectoriesAsGPXEntries("taxi_junho",
+							startDatetime, endDatetime);
+					List<MatchResult> results = new ArrayList<>();
+
+					for (List<GPXEntry> trajs : trajectories.values()) {
+						// do the actual matching, get the GPX entries
+						// from a file or via stream
+						try {
+							log.info("started!");
+							MatchResult mr = mapMatching.doWork(trajs);
+							results.add(mr);
+							// return GraphHopper edges with all
+							// associated GPX entries
+
+						} catch (Exception e) {
+							// e.printStackTrace();
+						}
+
+					}
+
+					return results;
+
+				} catch (ClassNotFoundException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (SQLException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				} catch (IOException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
+			}
+
+			// }
+		} catch (ClassNotFoundException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (SQLException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		} catch (IOException e1) {
+			// TODO Auto-generated catch block
+			e1.printStackTrace();
+		}
+		return null;
 
 	}
 
