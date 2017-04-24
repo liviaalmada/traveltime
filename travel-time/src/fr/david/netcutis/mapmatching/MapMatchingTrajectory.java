@@ -17,7 +17,6 @@ import com.github.davidmoten.rtree.geometry.Geometries;
 import com.github.davidmoten.rtree.geometry.Line;
 import com.vividsolutions.jts.geom.Coordinate;
 
-import br.ufc.arida.traveltime.test.RunMapMatching;
 import fr.david.netcutis.datamodel.TrajectoryAsSet;
 
 public class MapMatchingTrajectory {
@@ -27,7 +26,7 @@ public class MapMatchingTrajectory {
 	private Edge[] edge_array_vector;
 	private RTree<Integer, Line> rtree;
 	protected static final Logger LOGGER = Logger.getGlobal();
-	private static org.slf4j.Logger log = LoggerFactory.getLogger(RunMapMatching.class);
+	private static org.slf4j.Logger log = LoggerFactory.getLogger(MapMatchingTrajectory.class);
 
 	public MapMatchingTrajectory(Set<Edge> edge_array) {
 		this.edge_array = edge_array;
