@@ -1,4 +1,4 @@
-package br.ufc.arida.analysis.timeseries.model;
+package br.ufc.arida.analysis.model;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -8,13 +8,13 @@ import java.util.Map;
 
 public class CostTimeSeries {
 	
-	private int edgeId;
+	private long edgeId;
 	private double edgeMaxSpeedMS;
 	private double edgeLenghtMtr;
 	private int numberOfIntervals;
 	private Map<Integer, CostSet> travelCostSetMap;
 	
-	public CostTimeSeries(int edgeId, int numberOfIntervals, double maxSpeed, double leght) {
+	public CostTimeSeries(long edgeId, int numberOfIntervals, double maxSpeed, double leght) {
 		super();
 		this.edgeMaxSpeedMS = maxSpeed;
 		this.edgeLenghtMtr = leght;
@@ -23,21 +23,31 @@ public class CostTimeSeries {
 		this.travelCostSetMap = new HashMap<>();
 	}
 
-	public CostTimeSeries(int edgeId, int numberOfIntervals) {
+	public CostTimeSeries(long edgeId, int numberOfIntervals) {
 		super();
 		this.edgeId = edgeId;
 		this.numberOfIntervals = numberOfIntervals;
 		this.travelCostSetMap = new HashMap<>();
 	}
 
-	public List<Double> getUnionOfTravelTimeCosts() {
+	public ArrayList<Double> getUnionOfTravelTimeCosts() {
 		ArrayList<Double> allCosts = new ArrayList<>();
 		for (CostSet travelCostSet : travelCostSetMap.values()) {
 			allCosts.addAll(travelCostSet.getCosts());
 		}
 		return allCosts;
 	}
-
+	
+	public double[] getUnionOfTravelTimeCostsAsArray() {
+		ArrayList<Double> allCosts = new ArrayList<>();
+		for (CostSet travelCostSet : travelCostSetMap.values()) {
+			allCosts.addAll(travelCostSet.getCosts());
+		}
+		
+		double[] array = allCosts.stream().mapToDouble(Double::doubleValue).toArray();
+		return array;
+	}
+	
 	public void addTravelCost(Double value, int interval) {
 		if (!travelCostSetMap.containsKey(interval)) {
 			CostSet travelCostSet = new CostSet(interval);
@@ -77,7 +87,7 @@ public class CostTimeSeries {
 		this.numberOfIntervals = numberOfIntervals;
 	}
 
-	public int getEdgeId() {
+	public long getEdgeId() {
 		return edgeId;
 	}
 

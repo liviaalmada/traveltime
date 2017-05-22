@@ -2,21 +2,16 @@ package br.ufc.arida.analysis.utils;
 
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.sql.SQLException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.List;
 
-import org.graphast.util.ProbabilisticEdgesUtils;
-
-import com.jmef.ExponentialFamily;
 import com.jmef.MixtureModel;
 import com.jmef.PVector;
 import com.jmef.UnivariateGaussian;
 
-import br.ufc.arida.analysis.dao.ConstrainedTrajectoryDao;
-import br.ufc.arida.analysis.dao.ProbabilisticCostsDAO;
-import br.ufc.arida.analysis.timeseries.model.CostTimeSeries;
+import br.ufc.arida.analysis.model.CostTimeSeries;
+import br.ufc.arida.analysis.model.cost.MixtureModelCost;
+import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
 /**
  * This class implements the CostClustering algorithm proposed by Yang, Bin,
@@ -29,7 +24,7 @@ import br.ufc.arida.analysis.timeseries.model.CostTimeSeries;
  */
 public class CostClustering {
 
-	public static int mCounts = 15;
+	public static int mCounts = 5;
 
 	public static PVector[] getListAsPVectorArray(List<Double> values) {
 		PVector[] pVector = new PVector[values.size()];
@@ -90,16 +85,16 @@ public class CostClustering {
 	 * @param gmm
 	 * @return
 	 */
-	public static MixtureModel[] temporalGMM(CostTimeSeries ts, MixtureModel gmm) {
+	public static ProbabilisticCost[] temporalGMM(CostTimeSeries ts, MixtureModel gmm) {
 
 		int m = ts.getNumberOfIntervals();
-		MixtureModel[] temporalGMM = new MixtureModel[m];
+		ProbabilisticCost[] temporalGMM = new MixtureModelCost[m];
 		UnivariateGaussian gaussian = new UnivariateGaussian();
 
 		// Produce new weights for the gaussian mixture model according to the
 		// interval x
 		for (int x = 0; x < m; x++) {
-			temporalGMM[x] = gmm.clone();
+			temporalGMM[x] = new MixtureModelCost(gmm.clone());
 
 			// If the number of observations is enough, otherwise the weights
 			// will be the original
@@ -107,14 +102,13 @@ public class CostClustering {
 				boolean converge = false;
 				PVector[] costSet = getListAsPVectorArray(ts.getTravelCostSet(x).getCosts());
 				do {
-					System.out.println("Não convergiu...");
 					double[] sum = new double[gmm.size];
 
 					for (PVector cost : costSet) {
 						double[] lh = new double[gmm.size];
 						double sumLh = 0;
 						for (int k = 0; k < gmm.size; k++) {
-							lh[k] = temporalGMM[x].weight[k] * gaussian.density(cost, (PVector) gmm.param[k]);
+							lh[k] = ((MixtureModelCost) temporalGMM[x]).mm.weight[k] * gaussian.density(cost, (PVector) gmm.param[k]);
 							sumLh = sumLh + lh[k];
 						}
 						for (int k = 0; k < gmm.size; k++) {
@@ -123,9 +117,9 @@ public class CostClustering {
 						}
 						converge = true;
 						for (int k = 0; k < gmm.size; k++) {
-							double previsouWeight = temporalGMM[x].weight[k];
-							temporalGMM[x].weight[k] = sum[k] / costSet.length;
-							if (Math.abs(previsouWeight - temporalGMM[x].weight[k]) > 0.1) {
+							double previsouWeight = ((MixtureModelCost) temporalGMM[x]).mm.weight[k];
+							((MixtureModelCost) temporalGMM[x]).mm.weight[k] = sum[k] / costSet.length;
+							if (Math.abs(previsouWeight - ((MixtureModelCost) temporalGMM[x]).mm.weight[k]) > 0.5) {
 								converge = false;
 							}
 						}

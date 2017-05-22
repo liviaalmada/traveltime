@@ -1,4 +1,4 @@
-package br.ufc.arida.analysis.dao;
+package br.ufc.arida.dao;
 
 
 import java.io.File;

@@ -5,9 +5,11 @@ import com.jmef.MixtureModel;
 public class GaussianParser implements ICostParser{
 
 	@Override
-	public void save(ProbabilisticCost probabilisticCost, String path) {
+	public void save(ProbabilisticCost probabilisticCost, String path) throws Exception {
 		if(probabilisticCost instanceof GaussianCost){
 			MixtureModel.save(((GaussianCost)probabilisticCost).mm, path);
+		}else{
+			throw new Exception("Wrong paser.");
 		}
 	}
 

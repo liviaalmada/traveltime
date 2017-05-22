@@ -1,4 +1,4 @@
-package br.ufc.arida.analysis.dao;
+package br.ufc.arida.dao;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -22,7 +22,8 @@ public class PGRountingGraphDAO {
 			+ " ST_Length(the_geom::geography)  as distance " + "from roads_experiments;";
 	
 	private static String QUERY_GRAPH_STR_DEBUG = "select id, source, target," + " x1, y1, x2, y2, cost, reverse_cost, name, "
-			+ " ST_Length(the_geom::geography)  as distance " + "from roads_experiments where id >= 20988 order by id;";
+			+ " ST_Length(the_geom::geography)  as distance " + "from roads_experiments"; 
+	//where id in (select edge_id from MOST_USED_TIME_SERIES) order by id;";
 
 	/**
 	 * This method load a network from the pgrouting database schema and save as
@@ -67,20 +68,20 @@ public class PGRountingGraphDAO {
 			}
 			// Distance in (mm)
 			Edge e1 = new EdgeImpl(result.getInt("id"), n1.getId(), n2.getId(),
-					(int) (result.getDouble("distance") * 1000), result.getString("name"));
+					(int) (result.getDouble("distance") ), result.getString("name"));
 			graph.addEdge(e1);
 			System.out.println(e1);
 			count++;
 
 			if (result.getDouble("reverse_cost") == result.getDouble("cost")) {
 				Edge e2 = new EdgeImpl(result.getInt("id"), n2.getId(), n1.getId(),
-						(int) (result.getDouble("distance") * 1000), result.getString("name"));
+						(int) (result.getDouble("distance") ), result.getString("name"));
 				graph.addEdge(e2);
 				System.out.println(e2);
 				count++;
 			}
 			
-			if(count==100) break;
+			if(count==500) break;
 		}
 		graph.save();
 		connection.close();

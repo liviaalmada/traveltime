@@ -1,4 +1,4 @@
-package br.ufc.arida.analysis.dao;
+package br.ufc.arida.dao;
 
 import java.io.IOException;
 import java.sql.Connection;
@@ -8,7 +8,7 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-import br.ufc.arida.analysis.timeseries.model.CostTimeSeries;
+import br.ufc.arida.analysis.model.CostTimeSeries;
 import fr.david.netcutis.mapmatching.ConstrainedTrajectory;
 
 public class ConstrainedTrajectoryDao {

@@ -1,4 +1,4 @@
-package br.ufc.arida.analysis.timeseries.model;
+package br.ufc.arida.analysis.model;
 
 import java.util.HashMap;
 

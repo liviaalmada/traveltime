@@ -10,19 +10,14 @@ import java.util.Map.Entry;
 import java.util.Set;
 
 import org.graphast.model.Edge;
-import org.graphast.util.ProbabilisticEdgesUtils;
-
-import com.jmef.MixtureModel;
 
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
-import br.ufc.arida.analysis.model.cost.MixtureModelCost;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 import br.ufc.arida.analysis.model.measures.DistanceMeasure;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 public class ProbabilisticDistanceAnalysis {
 
-	private static final int numberOfPoints = 100;
 	private ProbabilisticGraph graph;
 	private DistanceMeasure<ProbabilisticCost> similarity;
 	private Map<Long, Set<NeighborEdge>> dissimMatrix;
@@ -89,12 +84,13 @@ public class ProbabilisticDistanceAnalysis {
 				if (!distanceSet.contains(neighborEdge))
 					distanceSet.add(neighborEdge);
 				System.out.println(distance);
-			} else {
-				NeighborEdge neighborEdge = new NeighborEdge(edgeId, outEdgeId, null);
-				if (!distanceSet.contains(neighborEdge))
-					distanceSet.add(neighborEdge);
-				System.out.println(-1);
-				
+				// } else {
+				// NeighborEdge neighborEdge = new NeighborEdge(edgeId,
+				// outEdgeId, null);
+				// if (!distanceSet.contains(neighborEdge))
+				// distanceSet.add(neighborEdge);
+				// System.out.println(-1);
+				//
 			}
 		} catch (Exception e) {
 			// TODO: handle exception
@@ -134,7 +130,6 @@ public class ProbabilisticDistanceAnalysis {
 
 		similarityKNeighbors(edgeId, edgeId, k, intervalTime, BIDIRECTED_SEARCH);
 
-		System.out.println(distanceSet);
 	}
 
 	/**
@@ -190,7 +185,7 @@ public class ProbabilisticDistanceAnalysis {
 						writer.write(entry.getKey() + ", ");
 						writer.write(neighbor.getIdOutEdge() + ", ");
 						writer.write(neighbor.getDistanceValue() + "\n");
-					} 
+					}
 
 				}
 			}

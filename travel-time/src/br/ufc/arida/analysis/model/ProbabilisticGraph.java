@@ -1,26 +1,29 @@
-package br.ufc.arida.analysis.timeseries.model;
+package br.ufc.arida.analysis.model;
 
 import java.util.HashMap;
 import java.util.Map;
 
+import org.graphast.exception.GraphastException;
 import org.graphast.model.GraphImpl;
 import org.graphast.util.FileUtils;
 
-import com.jmef.MixtureModel;
+import br.ufc.arida.analysis.model.cost.ICostParser;
+import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
-import it.unimi.dsi.fastutil.ints.IntBigArrayBigList;
-
-public class ProbabilisticGraph extends GraphImpl {
+public class ProbabilisticGraph extends GraphImpl implements IProbabilisticGraph{
 
 	private static final long serialVersionUID = 1L;
 	
 	private int numberOfIntervals = 96;
 
-	private Map<Long, MixtureModel[]> probabilisticCosts;
+	private Map<Long, ProbabilisticCost[]> probabilisticCosts;
+	
+	private ICostParser parser;
 
-	public ProbabilisticGraph(String directory) {
+	public ProbabilisticGraph(String directory, ICostParser parser) {
 		super(directory);
 		probabilisticCosts = new HashMap<>();
+		this.parser = parser;
 	}
 
 	@Override
@@ -37,48 +40,91 @@ public class ProbabilisticGraph extends GraphImpl {
 		saveProbabilisticCosts();
 
 	}
-
-	private void saveProbabilisticCosts() {
+	
+	@Override
+	public void saveProbabilisticCosts() {
 		// TODO Auto-generated method stub
 		// TODO save the number of intervals 
+		
 		for (long idEdge : probabilisticCosts.keySet()) {
-			String directoryRoot = absoluteDirectory + "/probabilistic_costs/" + idEdge + "/";
+			System.out.println("saving...");
+			String directoryRoot = absoluteDirectory + "/probabilistic_costs/";
 			FileUtils.createDir(directoryRoot);
-			MixtureModel[] mixtureModels = probabilisticCosts.get(idEdge);
-			for (int i = 0; i < mixtureModels.length; i++) {
-				MixtureModel.save(mixtureModels[i], directoryRoot + String.valueOf(i));
+			ProbabilisticCost[] costs = probabilisticCosts.get(idEdge);
+			for (int i = 0; i < numberOfIntervals; i++) {
+				
+				//MixtureModel.save(mixtureModels[i].mm, directoryRoot + String.valueOf(i));
+				try {
+					parser.save(costs[i], directoryRoot + String.valueOf(idEdge+"_"+i));
+				} catch (Exception e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+				}
 			}
 		}
+		
+		
 	}
 
-	private void loadProbabilisticCosts() {
+	@Override
+	public void loadProbabilisticCosts( ) {
 		// TODO como fazer para ler os custos?
-		IntBigArrayBigList edges = getEdges();
-		for (Integer id : edges) {
-			String directoryRoot = absoluteDirectory + "/probabilistic_costs/" + id + "/";
-			MixtureModel[] mixtureModels = new MixtureModel[numberOfIntervals];
+		long edges = getNumberOfEdges();
+		for (long id = 0; id < edges; id++) {
+			String directoryRoot = absoluteDirectory + "/probabilistic_costs/";
+			ProbabilisticCost[] costs = new ProbabilisticCost[numberOfIntervals];
 			for(int i = 0; i<numberOfIntervals; i++){
-				MixtureModel gmm = MixtureModel.load(directoryRoot+i);
-				mixtureModels[i]= gmm;
+				ProbabilisticCost cost = parser.load(directoryRoot+id+"_"+i);
+				costs[i]= cost;
 			}
-			addProbabilisticCost(id, mixtureModels);
+			addProbabilisticCost(id, costs);	
 		}
 	}
 
-	public void addProbabilisticCost(long edgeId, MixtureModel[] costs) {
-		probabilisticCosts.put(edgeId, costs);
+	@Override
+	public void addProbabilisticCost(long edgeId, ProbabilisticCost[] costs) {
+		if(edgeId < getNumberOfEdges())
+			probabilisticCosts.put(edgeId, costs);
+		else new GraphastException("Edge not found.");
 	}
 	
-	public MixtureModel[] getProbabilisticCosts(long id){
+	@Override
+	public ProbabilisticCost[] getProbabilisticCosts(long id){
 		return probabilisticCosts.get(id);
 	}
+	
+	/**
+	 * The probabilistic distribution function in a edge 
+	 * @param edgeId
+	 * @param timeInterval
+	 * @return
+	 */
+	@Override
+	public ProbabilisticCost getProbabilisticCosts(long edgeId, int timeInterval){
+		ProbabilisticCost[] costs = probabilisticCosts.get(edgeId);
+		if(timeInterval<costs.length)
+			return costs[timeInterval];
+		return null;
+	}
 
+	@Override
 	public int getNumberOfIntervals() {
 		return numberOfIntervals;
 	}
 
+	@Override
 	public void setNumberOfIntervals(int n) {
 		this.numberOfIntervals = n;
+	}
+
+	public void addProbabilisticCost(long edgeId, int time, ProbabilisticCost newCost) {
+		if(edgeId < getNumberOfEdges()&& time <= maxTime) {
+			ProbabilisticCost[] probabilisticCosts = getProbabilisticCosts(edgeId);
+			if(probabilisticCosts==null){
+				probabilisticCosts = new ProbabilisticCost[numberOfIntervals];
+			}
+			probabilisticCosts[time]=newCost;
+		} else new GraphastException("Edge not found.");
 	}
 	
 	

@@ -2,7 +2,7 @@ package br.ufc.arida.analysis.utils;
 
 import org.apache.commons.math3.stat.descriptive.DescriptiveStatistics;
 
-import br.ufc.arida.analysis.timeseries.model.CostTimeSeries;
+import br.ufc.arida.analysis.model.CostTimeSeries;
 
 public class TimeSeriesUtils {
 

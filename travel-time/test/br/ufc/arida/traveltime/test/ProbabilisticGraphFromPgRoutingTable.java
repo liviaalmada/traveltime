@@ -3,17 +3,17 @@ package br.ufc.arida.traveltime.test;
 import java.io.IOException;
 import java.sql.SQLException;
 
-import org.graphast.model.GraphImpl;
-
-import br.ufc.arida.analysis.dao.PGRountingGraphDAO;
-import br.ufc.arida.analysis.dao.ProbabilisticCostsDAO;
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
+import br.ufc.arida.analysis.model.cost.GaussianParser;
+import br.ufc.arida.analysis.model.cost.MixtureModelParser;
+import br.ufc.arida.dao.PGRountingGraphDAO;
+import br.ufc.arida.dao.ProbabilisticCostsDAO;
 
-public class ProbabilisticGraphTest {
+public class ProbabilisticGraphFromPgRoutingTable {
 	public static void main(String[] args) {
 		try {
 			PGRountingGraphDAO.readFromDBAndSave("graph");
-			GraphImpl graph = new ProbabilisticGraph("graph");
+			ProbabilisticGraph graph = new ProbabilisticGraph("graph", new GaussianParser());
 			graph.load();
 			System.out.println(graph.getNumberOfNodes());
 			System.out.println(graph.getNumberOfEdges());
@@ -25,8 +25,11 @@ public class ProbabilisticGraphTest {
 			
 			ProbabilisticCostsDAO dao = new ProbabilisticCostsDAO();
 			
-			dao.addProbabilisticCosts((ProbabilisticGraph) graph);
+			dao.addTimeDependentGaussianCost((ProbabilisticGraph) graph);
 			graph.setDirectory("graph-prob");
+			for (int id = 0; id < edges; id++) {
+				System.out.println("COST" + graph.getProbabilisticCosts(id));
+			}
 			graph.save();
 			
 		} catch (ClassNotFoundException e) {
@@ -40,4 +43,5 @@ public class ProbabilisticGraphTest {
 			e.printStackTrace();
 		}
 	}
+	
 }
