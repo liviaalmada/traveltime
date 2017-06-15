@@ -1,16 +1,12 @@
 package br.ufc.arida.traveltime.test;
 
-import java.util.List;
-import java.util.Map;
-import java.util.Map.Entry;
-
-import br.ufc.arida.analysis.algortihms.DBScan;
+import br.ufc.arida.analysis.algortihms.BFSClustering;
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.GaussianParser;
 import br.ufc.arida.analysis.model.measures.CosineDistance;
 import br.ufc.arida.dao.ProbabilisticCostsDAO;
 
-public class DBSCanTeste {
+public class BfsTest2 {
 	public static void main(String[] args) {
 		
 		ProbabilisticGraph graph = new ProbabilisticGraph(
@@ -24,12 +20,11 @@ public class DBSCanTeste {
 				"/home/livia/git/graph-import/graph-import/graphast-to-graphhopper-map");
 
 		try {
-			//dao.addGaussianCost((ProbabilisticGraph) graph);
-			SintethicProbabilisticGraph.generateSintethicCosts(graph);
-					
-			DBScan alg = new DBScan(graph, new CosineDistance());
-			alg.runAndSave("clusters2",0.7, 1, 5, 0);
+			dao.addTimeDependentGaussianCost((ProbabilisticGraph) graph);
 			
+			BFSClustering alg = new BFSClustering();
+			alg.doClustering(graph, new CosineDistance(), 49, 0.6);
+			alg.saveClusters("testeRealBFS");
 		}catch (Exception e) {
 			// TODO: handle exception
 			e.printStackTrace();

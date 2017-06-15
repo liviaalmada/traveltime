@@ -1,7 +1,5 @@
 package br.ufc.arida.traveltime.test;
 
-import com.jmef.MixtureModel;
-
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.MixtureModelCost;
 import br.ufc.arida.analysis.model.cost.MixtureModelParser;

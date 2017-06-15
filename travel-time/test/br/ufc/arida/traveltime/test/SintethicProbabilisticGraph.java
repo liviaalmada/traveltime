@@ -1,5 +1,7 @@
 package br.ufc.arida.traveltime.test;
 
+import java.util.Random;
+
 import org.graphast.model.EdgeImpl;
 import org.graphast.model.NodeImpl;
 
@@ -9,6 +11,8 @@ import br.ufc.arida.analysis.model.cost.GaussianParser;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
 public class SintethicProbabilisticGraph {
+
+	private static Random generator;
 
 	public static ProbabilisticGraph generate(long nLines, long nNodesByLine, int numIntervals) {
 		ProbabilisticGraph g = new ProbabilisticGraph("/home/livia/dados/", new GaussianParser());
@@ -23,17 +27,17 @@ public class SintethicProbabilisticGraph {
 				if (i < nLines - 1) {
 					long fromNode = (i * nNodesByLine) + j;
 					long toNode = ((i + 1) * nNodesByLine) + j;
-					System.out.println("edge: "+fromNode+" "+toNode);
+					System.out.println("edge: " + fromNode + " " + toNode);
 					g.addEdge(new EdgeImpl(fromNode, toNode, 1));
-					System.out.println("edge: "+toNode+" "+fromNode);
+					System.out.println("edge: " + toNode + " " + fromNode);
 					g.addEdge(new EdgeImpl(toNode, fromNode, 1));
 				}
 				if (j < nNodesByLine - 1) {
 					long fromNode = (i * nNodesByLine) + j;
 					long toNode = fromNode + 1;
-					System.out.println("edge: "+fromNode+" "+toNode);
+					System.out.println("edge: " + fromNode + " " + toNode);
 					g.addEdge(new EdgeImpl(fromNode, toNode, 1));
-					System.out.println("edge: "+toNode+" "+fromNode);
+					System.out.println("edge: " + toNode + " " + fromNode);
 					g.addEdge(new EdgeImpl(toNode, fromNode, 1));
 				}
 			}
@@ -45,17 +49,20 @@ public class SintethicProbabilisticGraph {
 	}
 
 	public static void generateSintethicCosts(ProbabilisticGraph g) {
+		
+		generator = new Random(7);
 		for (int i = 0; i < g.getNumberOfEdges(); i++) {
-			System.out.println("Gen to edge "+i);
+			System.out.println("Gen to edge " + i);
 			g.addProbabilisticCost(i, generateSintethicCosts(g.getNumberOfIntervals()));
 		}
 	}
 
 	private static ProbabilisticCost[] generateSintethicCosts(int i) {
+		
 		GaussianCost[] costs = new GaussianCost[i];
 		for (int j = 0; j < costs.length; j++) {
-			double mean = 20.+ Math.random()*15.;
-			costs[j] = new GaussianCost(mean,  Math.random()*3.);
+			double mean = 20. + generator.nextDouble() * 15.;
+			costs[j] = new GaussianCost(mean, generator.nextDouble() * 3.);
 		}
 		return costs;
 	}

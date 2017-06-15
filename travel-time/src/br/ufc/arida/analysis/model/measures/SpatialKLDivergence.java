@@ -21,4 +21,10 @@ public class SpatialKLDivergence implements DistanceMeasure {
 		return 0;
 	}
 
+	@Override
+	public double calculate(Long id1, Long id2, Object m1, Object m2) throws Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

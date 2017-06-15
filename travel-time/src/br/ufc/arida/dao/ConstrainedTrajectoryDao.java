@@ -7,6 +7,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import br.ufc.arida.analysis.model.CostTimeSeries;
 import fr.david.netcutis.mapmatching.ConstrainedTrajectory;
@@ -59,10 +60,8 @@ public class ConstrainedTrajectoryDao {
 		ProbabilisticCostsDAO dao = new ProbabilisticCostsDAO();
 		try {
 			//ArrayList<Double> listPointsGroupedByEdge = dao.listPointsGroupedByEdge(0, 12, 44894);
-			CostTimeSeries travelCostTimeSeries = dao.getTravelCostTimeSeries(20988);
-			List<Double> unionOfTravelTimeCosts = travelCostTimeSeries.getUnionOfTravelTimeCosts();
-			System.out.println(unionOfTravelTimeCosts.size());
-			System.out.println(unionOfTravelTimeCosts);
+			Map<Long, CostTimeSeries> travelCostTimeSeries = dao.getTravelCostTimeSeries(20988);
+			
 		} catch (ClassNotFoundException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();

@@ -17,7 +17,7 @@ public class DBSCanTeste2 {
 			ProbabilisticGraph graph = SintethicProbabilisticGraph.generate(10, 10, 1);
 
 			DBScan alg = new DBScan(graph, new CosineDistance());
-			Map<Integer, List<Long>> map = alg.run(0.5, 1, 2, 0);
+			Map<Integer, List<Long>> map = alg.run(0.5, 1, 3, 0);
 			for (Entry<Integer, List<Long>> e : map.entrySet()) {
 				for (Long l : e.getValue()) {
 					System.out.println(e.getKey() + " , " + l + " " + graph.getProbabilisticCosts(l, 0));

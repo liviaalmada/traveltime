@@ -21,4 +21,10 @@ public class LpMetric implements DistanceMeasure<ProbabilisticCost> {
 
 	}
 
+	@Override
+	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+		// TODO Auto-generated method stub
+		return 0;
+	}
+
 }

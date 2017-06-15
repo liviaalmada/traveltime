@@ -35,7 +35,7 @@ public class GaussianCost implements ProbabilisticCost {
 
 	@Override
 	public String toString() {
-		if(mm!=null)return "" + ((PVector)mm.param[0]).array[0]+", " +((PVector)mm.param[0]).array[1]+ "";
+		if(mm!=null)return "" + ((PVector)mm.param[0]).array[0]+";" +((PVector)mm.param[0]).array[1]+ "";
 		else return "";
 	}
 	
