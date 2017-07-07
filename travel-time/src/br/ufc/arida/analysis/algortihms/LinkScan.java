@@ -17,25 +17,24 @@ import org.graphast.model.Edge;
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.NetTrafficDistance;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
-import br.ufc.arida.analysis.model.measures.DistanceMeasure;
+import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
 import it.unimi.dsi.fastutil.booleans.BooleanBigArrayBigList;
 import it.unimi.dsi.fastutil.ints.IntBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongList;
 
-public class DBScan {
+public class LinkScan {
 
-	private ProbabilisticGraph graph;
-	private BooleanBigArrayBigList visited;
-	private BooleanBigArrayBigList noise;
-	private IntBigArrayBigList inCluster;
-	private DistanceMeasure<ProbabilisticCost> distance;
+	protected ProbabilisticGraph graph;
+	protected BooleanBigArrayBigList visited;
+	protected BooleanBigArrayBigList noise;
+	protected IntBigArrayBigList inCluster;
+	protected TrafficComparatorMeasure<ProbabilisticCost> distance;
 	private int nextCluster = 0;
 	private List<Long> cluster;
 	private List<Long> noises;
 	private Map<Integer, List<Long>> clusters;
-	private int minPts;
 
-	public DBScan(ProbabilisticGraph g, DistanceMeasure<ProbabilisticCost> distance) {
+	public LinkScan(ProbabilisticGraph g, TrafficComparatorMeasure<ProbabilisticCost> distance) {
 		this.graph = g;
 		this.distance = distance;
 		clusters = new HashMap<>();
@@ -44,7 +43,6 @@ public class DBScan {
 	public Map<Integer, List<Long>> run(double epsSim, double epsNet, int minPts, int time) {
 		long graphSize = graph.getNumberOfEdges();
 		clusters.clear();
-		this.minPts = minPts;
 		inCluster = new IntBigArrayBigList(graphSize);
 		visited = new BooleanBigArrayBigList(graphSize);
 		noise = new BooleanBigArrayBigList(graphSize);
@@ -61,9 +59,9 @@ public class DBScan {
 				continue;
 
 			Edge edge = graph.getEdge(id);
-
-			// if(graph.getProbabilisticCosts(edge.getId(), time)==null)
-			// continue;
+			ProbabilisticCost costs = graph.getProbabilisticCosts(edge.getId(), time);
+			if(costs==null)
+				continue;
 
 			cluster = new ArrayList<>();
 			if (expandCluster(edge, epsSim, epsNet, minPts, time)) {
@@ -88,7 +86,7 @@ public class DBScan {
 	}
 
 	private boolean expandCluster(Edge edge, double epsSim, double epsNet, int minPoints, int time) {
-		List<Edge> seeds = disconnectedRegionQuery(edge, epsSim, epsNet, time);
+		List<Edge> seeds = regionQuery(edge, epsSim, epsNet, time);
 
 		if (seeds.size() < minPoints) {
 			noise.set(edge.getId().longValue(), true);
@@ -101,7 +99,7 @@ public class DBScan {
 		while (!seeds.isEmpty()) {
 			Edge current = seeds.get(0);
 			seeds.remove(0);
-			List<Edge> result = disconnectedRegionQuery(current, epsSim, epsNet, time);
+			List<Edge> result = regionQuery(current, epsSim, epsNet, time);
 
 			if (result.size() >= minPoints) {
 				for (int i = 0; i < result.size(); i++) {
@@ -118,8 +116,6 @@ public class DBScan {
 		}
 		return true;
 
-		// expandCluster(id, newPts, epsSim, minPts, time);
-
 	}
 
 	private void setAllSeedsCluster(List<Edge> seeds) {
@@ -132,36 +128,9 @@ public class DBScan {
 		}
 	}
 
-	// TODO REFAZER PARA RETORNAR APENAS REGIOES CONEXAS => TALVEZ NÃO FAÇA
-	// SENTIDO PQ OS DADOS SÃO ESPARSOS
-	public List<Edge> connectedRegionQuery(Edge edge, double epsSim, double epsNet, int time) {
-		List<Edge> region = new ArrayList<Edge>();
-		ProbabilisticCost costs = graph.getProbabilisticCosts(edge.getId(), time);
-		List<Edge> neighbors = new ArrayList<>();
-		Set<Long> visitedNeighbors = new HashSet<>();
-		visitedNeighbors.add(edge.getId());
-		getEdgesInNeighborhood(edge, epsNet, neighbors, visitedNeighbors, time);
+	
 
-		for (int i = 0; i < neighbors.size(); i++) {
-			Edge edgeNeigh = neighbors.get(i);
-			ProbabilisticCost outCosts = graph.getProbabilisticCosts(edgeNeigh.getId(), time);
-
-			try {
-				double d = distance.calculate(costs, outCosts);
-				if (d < epsSim)
-					region.add(edgeNeigh);
-				// System.out.println("distance: " + d);
-
-			} catch (Exception e) {
-				visited.set(edgeNeigh.getId().longValue(), true);
-				e.printStackTrace();
-			}
-		}
-
-		return region;
-	}
-
-	public List<Edge> disconnectedRegionQuery(Edge edge, double epsSim, double epsNet, int time) {
+	public List<Edge> regionQuery(Edge edge, double epsSim, double epsNet, int time) {
 		List<Edge> region = new ArrayList<Edge>();
 		ProbabilisticCost costs = graph.getProbabilisticCosts(edge.getId(), time);
 		List<Edge> neighbors = new ArrayList<>();
@@ -177,9 +146,6 @@ public class DBScan {
 				if (outCosts == null || d < epsSim) {
 					region.add(edgeNeigh);
 				}
-
-				// System.out.println("distance: " + d);
-
 			} catch (Exception e) {
 				visited.set(edgeNeigh.getId().longValue(), true);
 				// e.printStackTrace();
@@ -190,7 +156,7 @@ public class DBScan {
 
 	}
 
-	private List<Edge> getEdgesInNeighborhood(Edge originEdge, double epsNet, List<Edge> neighbors,
+	protected List<Edge> getEdgesInNeighborhood(Edge originEdge, double epsNet, List<Edge> neighbors,
 			Set<Long> visitedNeighbors, int time) {
 		if (epsNet == 0)
 			return neighbors;
@@ -200,7 +166,7 @@ public class DBScan {
 			if (inCluster.get(neigh.getId()) == 0 && !visitedNeighbors.contains(neigh.getId())) {
 				neighbors.add(neigh);
 				visitedNeighbors.add(neigh.getId());
-				if(distance instanceof NetTrafficDistance){
+				if (distance instanceof NetTrafficDistance) {
 					((NetTrafficDistance) distance).putNetDistance(originEdge.getId(), neigh.getId(), epsNet);
 				}
 				getEdgesInNeighborhood(neigh, epsNet - 1, neighbors, visitedNeighbors, time);
@@ -213,7 +179,7 @@ public class DBScan {
 			if (inCluster.get(neigh.getId()) == 0 && !visitedNeighbors.contains(neigh.getId())) {
 				neighbors.add(neigh);
 				visitedNeighbors.add(neigh.getId());
-				if(distance instanceof NetTrafficDistance){
+				if (distance instanceof NetTrafficDistance) {
 					((NetTrafficDistance) distance).putNetDistance(originEdge.getId(), neigh.getId(), epsNet);
 				}
 				getEdgesInNeighborhood(neigh, epsNet - 1, neighbors, visitedNeighbors, time);
@@ -223,7 +189,7 @@ public class DBScan {
 		return neighbors;
 	}
 
-	private List<Edge> getEdgesInNeighborhood(Edge edge) {
+	protected List<Edge> getEdgesInNeighborhood(Edge edge) {
 		List<Edge> neighbors = new ArrayList<>();
 		LongList nodesNeig = graph.getOutNeighbors(graph.getEdge(edge.getId()).getToNode());
 		for (Long node : nodesNeig) {
