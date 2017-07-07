@@ -19,10 +19,13 @@ import org.graphast.model.Edge;
 import org.graphast.util.ProbabilisticEdgesUtils;
 
 import com.jmef.MixtureModel;
+import com.jmef.PVector;
 
+import br.ufc.arida.analysis.model.CostSet;
 import br.ufc.arida.analysis.model.CostTimeSeries;
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.GaussianCost;
+import br.ufc.arida.analysis.model.cost.MixtureModelCost;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 import br.ufc.arida.analysis.utils.CostClustering;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -75,14 +78,11 @@ public class ProbabilisticCostsDAO {
 			edgesToCosts.put(id, costTimeSeries);
 			// Union of all costs in the edge (non time-dependent)
 			List<Double> allCosts = costTimeSeries.getUnionOfTravelTimeCosts();
-			System.out.println("Edge id " + id);
+
 			if (allCosts.size() > 10) {
 				// Generate non time-dependent gaussian mixture models
 				MixtureModel gmm = ProbabilisticEdgesUtils
-						.produceMixtureBregmanSoft(CostClustering.getListAsPVectorArray(allCosts), 1);
-				// ProbabilisticEdgesUtils.produceMixtureKFold(CostClustering.getListAsPVectorArray(allCosts),
-				// 1);
-				System.out.println(gmm);
+						.produceMixtureKFold(CostClustering.getListAsPVectorArray(allCosts), 2);
 				if (gmm != null) {
 					// generate temporal gaussian mixture models
 					ProbabilisticCost[] temporalGMM = CostClustering.temporalGMM(costTimeSeries, gmm);
@@ -94,22 +94,9 @@ public class ProbabilisticCostsDAO {
 
 		}
 
-		// countEmptyRoads = 0;
-		// do {
-		// for (long id = 0; id < edges; id++) {
-		//
-		// fillCosts(graph, id,
-		// graph.getOutEdges(graph.getEdge(id).getToNode()));
-		// if (graph.getProbabilisticCosts(id) == null)
-		// countEmptyRoads++;
-		// else if (countEmptyRoads > 0)
-		// countEmptyRoads--;
-		//
-		// }
-		// System.out.println("sem custos " + countEmptyRoads);
-		// } while (countEmptyRoads > 0);
 	}
 
+	@Deprecated
 	public void addTimeDependentGaussianCost(ProbabilisticGraph graph)
 			throws ClassNotFoundException, SQLException, IOException {
 		long edges = graph.getNumberOfEdges();
@@ -142,27 +129,31 @@ public class ProbabilisticCostsDAO {
 			graph.addProbabilisticCost(id, temporalCosts);
 
 		}
-		printCosts(graph, 55);
-		// fillCosts(graph,55);
 	}
 
+	/**
+	 * Attribute a Gaussian cost to edges in each interval time
+	 * 
+	 * @param graph
+	 * @param fill
+	 * @param numIntervals
+	 *            number of intervals that the day is divided equally
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 * @throws IOException
+	 */
 	public void addGaussianCost(ProbabilisticGraph graph, boolean fill, int numIntervals)
 			throws ClassNotFoundException, SQLException, IOException {
 		long edges = graph.getNumberOfEdges();
 		int count = 0;
-		Map<Integer, CostTimeSeries> edgesToCosts = new HashMap<>();
 		Map<Long, CostTimeSeries> map = getTravelCostTimeSeries(numIntervals);
-		System.out.println(edges);
 		for (int id = 0; id < edges; id++) {
 			// Get time series of observations in the edge
-			//CostTimeSeries costTimeSeries = getTravelCostTimeSeries(get(id, graph));
 			Long dbId = get(id, graph);
 			CostTimeSeries costTimeSeries = map.get(dbId);
-			if(costTimeSeries==null){
+			if (costTimeSeries == null) {
 				costTimeSeries = new CostTimeSeries(id, numIntervals);
 			}
-			System.out.println(get(id, graph));
-			edgesToCosts.put(id, costTimeSeries);
 			graph.setNumberOfIntervals(numIntervals);
 			int interval = 0;
 			for (interval = 0; interval < numIntervals; interval++) {
@@ -173,7 +164,7 @@ public class ProbabilisticCostsDAO {
 					double mean = StatUtils.mean(values);
 					double std = FastMath.sqrt(StatUtils.variance(values));
 					if (std == 0)
-						std = Math.min(mean, Math.min(5, mean));
+						std = Math.min(mean, Math.min(1, mean));
 					GaussianCost gaussian = new GaussianCost(mean, std);
 					graph.addProbabilisticCost(id, interval, gaussian);
 
@@ -185,6 +176,46 @@ public class ProbabilisticCostsDAO {
 		if (fill)
 			fillCosts(graph, 0);
 		System.out.println(count);
+	}
+
+	/**
+	 * Attribute a Gaussian cost to edges in each interval time
+	 * 
+	 * @param graph
+	 * @param fill
+	 * @param numIntervals
+	 *            number of intervals that the day is divided equally
+	 * @throws ClassNotFoundException
+	 * @throws SQLException
+	 * @throws IOException
+	 */
+	public void addMixtureGaussianCost(ProbabilisticGraph graph, boolean fill, int numIntervals, int k)
+			throws ClassNotFoundException, SQLException, IOException {
+		long edges = graph.getNumberOfEdges();
+		Map<Long, CostTimeSeries> map = getTravelCostTimeSeries(numIntervals);
+		for (int id = 0; id < edges; id++) {
+			// Get time series of observations in the edge
+			Long dbId = get(id, graph);
+			CostTimeSeries costTimeSeries = map.get(dbId);
+			if (costTimeSeries == null) {
+				costTimeSeries = new CostTimeSeries(id, numIntervals);
+			}
+			graph.setNumberOfIntervals(numIntervals);
+			int interval = 0;
+			for (interval = 0; interval < numIntervals; interval++) {
+				CostSet values = costTimeSeries.getTravelCostSet(interval);
+				if(values!=null && values.size()>k){
+					PVector[] pValues = CostClustering.getListAsPVectorArray(values.getCosts());
+					MixtureModel gmm = ProbabilisticEdgesUtils
+							.produceMixtureKFold(pValues, k);
+					System.out.println(gmm);
+					if (gmm != null) {
+						graph.addProbabilisticCost(id, interval, new MixtureModelCost(gmm));
+						System.out.println(gmm);
+					}
+				}
+			}
+		}
 	}
 
 	public void printCosts(ProbabilisticGraph graph, int i) {
@@ -288,16 +319,16 @@ public class ProbabilisticCostsDAO {
 	public Map<Long, CostTimeSeries> getTravelCostTimeSeries(int numIntervals)
 			throws ClassNotFoundException, SQLException, IOException {
 		Connection connection = ConnectionJDBC.getConnection();
-		PreparedStatement prepareStatement = connection
-				.prepareStatement("SELECT * FROM  compact_time_series_turnos  where avg_speed_ms < ? order by edge_id, time_interval");
+		PreparedStatement prepareStatement = connection.prepareStatement(
+				"SELECT * FROM  compact_time_series_turnos  where avg_speed_ms < ? order by edge_id, time_interval");
 		prepareStatement.setDouble(1, 120);
 		ResultSet resultSet = prepareStatement.executeQuery();
 		Map<Long, CostTimeSeries> map = new HashMap<>();
-		CostTimeSeries timeSeries=null;
+		CostTimeSeries timeSeries = null;
 		while (resultSet.next()) {
 
 			Long edge = resultSet.getLong("edge_id");
-			
+
 			if (!map.containsKey(edge)) {
 				timeSeries = new CostTimeSeries(edge, numIntervals);
 				map.put(edge, timeSeries);

@@ -2,7 +2,7 @@ package br.ufc.arida.analysis.model.measures;
 
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 // TODO validation
-public class NormalizedLpMetric implements DistanceMeasure<ProbabilisticCost> {
+public class NormalizedLpMetric implements TrafficComparatorMeasure<ProbabilisticCost> {
 
 	private int p;
 	private int size = 100;

@@ -1,6 +1,6 @@
-package br.ufc.arida.traveltime.test;
+package br.ufc.arida.analysis.experiments;
 
-import br.ufc.arida.analysis.algortihms.DBScan;
+import br.ufc.arida.analysis.algortihms.LinkScan;
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.GaussianParser;
 import br.ufc.arida.analysis.model.measures.CosineDistance;
@@ -40,7 +40,7 @@ public class DBSCanCosineTeste {
 							String file = "clusters-turnos/clusters" + String.format("%.1f", EpsSim) + "-" + EpsNet
 									+ "-" + minPts + " - " + interval;
 							System.out.println("Processing " + file);
-							DBScan alg = new DBScan(graph, new CosineDistance());
+							LinkScan alg = new LinkScan(graph, new CosineDistance());
 							alg.runAndSave(file, EpsSim, EpsNet, minPts, interval);
 						}
 					}

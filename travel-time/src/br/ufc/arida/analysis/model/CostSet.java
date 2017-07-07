@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import com.jmef.PVector;
-
 public class CostSet {
 	private int intervalSequence;
 	private ArrayList<Double> costs;

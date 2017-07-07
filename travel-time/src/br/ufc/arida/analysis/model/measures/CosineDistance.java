@@ -2,7 +2,7 @@ package br.ufc.arida.analysis.model.measures;
 
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
-public class CosineDistance implements DistanceMeasure<ProbabilisticCost> {
+public class CosineDistance implements TrafficComparatorMeasure<ProbabilisticCost> {
 
 	
 	private static final int size = 160;

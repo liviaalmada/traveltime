@@ -2,7 +2,7 @@ package br.ufc.arida.analysis.model.measures;
 
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
-public class LpMetric implements DistanceMeasure<ProbabilisticCost> {
+public class LpMetric implements TrafficComparatorMeasure<ProbabilisticCost> {
 
 	private int p;
 	public int size = 120;

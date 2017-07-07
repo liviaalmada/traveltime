@@ -3,15 +3,15 @@ package br.ufc.arida.analysis.model.cost;
 import java.util.HashMap;
 import java.util.Map;
 
-import br.ufc.arida.analysis.model.measures.DistanceMeasure;
+import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
 
-public class NetTrafficDistance implements DistanceMeasure<ProbabilisticCost> {
+public class NetTrafficDistance implements TrafficComparatorMeasure<ProbabilisticCost> {
 
-	private DistanceMeasure<ProbabilisticCost> pdfDistance;
+	private TrafficComparatorMeasure<ProbabilisticCost> pdfDistance;
 	private double epsNet;
 	private Map<Long, Map<Long, Double>> netDistance = new HashMap<>();
 
-	public NetTrafficDistance(DistanceMeasure<ProbabilisticCost> pdfDistance, double epsNet) {
+	public NetTrafficDistance(TrafficComparatorMeasure<ProbabilisticCost> pdfDistance, double epsNet) {
 		this.pdfDistance = pdfDistance;
 		this.epsNet = epsNet;
 	}

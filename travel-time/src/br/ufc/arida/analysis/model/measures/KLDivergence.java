@@ -1,30 +1,24 @@
 package br.ufc.arida.analysis.model.measures;
 
-import org.graphast.query.route.shortestpath.ShortestPathService;
-import org.graphast.query.route.shortestpath.astar.AStarConstantWeight;
+import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 
-import br.ufc.arida.analysis.model.ProbabilisticGraph;
-// TODO
-public class SpatialKLDivergence implements DistanceMeasure {
+public class KLDivergence implements TrafficComparatorMeasure<ProbabilisticCost> {
+	private static final int size = 160;
 	
-	private ProbabilisticGraph graph;
-	private ShortestPathService pathService; 
-	
-	public SpatialKLDivergence(ProbabilisticGraph graph) {
-		this.graph = graph;
-		pathService = new AStarConstantWeight(graph);
+	@Override
+	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+		double kld = 0;
+		for (int value = 0; value <= size; value++) {
+			double pi = m1.density(value);
+			double qi = m2.density(value);
+			kld += pi * Math.log(pi/qi);
+		}
+		return kld;
 	}
 
 	@Override
-	public double calculate(Object m1, Object m2){// throws CostNotFoundException {
-		// TODO Auto-generated method stub
-		return 0;
-	}
-
-	@Override
-	public double calculate(Long id1, Long id2, Object m1, Object m2) throws Exception {
-		// TODO Auto-generated method stub
-		return 0;
+	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+		return calculate(m1, m2);
 	}
 
 }

@@ -13,18 +13,18 @@ import org.graphast.model.Edge;
 
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
-import br.ufc.arida.analysis.model.measures.DistanceMeasure;
+import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 public class ProbabilisticDistanceAnalysis {
 
 	private ProbabilisticGraph graph;
-	private DistanceMeasure<ProbabilisticCost> similarity;
+	private TrafficComparatorMeasure<ProbabilisticCost> similarity;
 	private Map<Long, Set<NeighborEdge>> dissimMatrix;
 	private Set<NeighborEdge> distanceSet = new HashSet<NeighborEdge>();
 	private static int OUT_SEARCH = 0, IN_SEARCH = 1, BIDIRECTED_SEARCH = 2;
 
-	public ProbabilisticDistanceAnalysis(ProbabilisticGraph graph, DistanceMeasure<ProbabilisticCost> similarity) {
+	public ProbabilisticDistanceAnalysis(ProbabilisticGraph graph, TrafficComparatorMeasure<ProbabilisticCost> similarity) {
 		this.graph = graph;
 		this.similarity = similarity;
 		initSimilarityMatrix();

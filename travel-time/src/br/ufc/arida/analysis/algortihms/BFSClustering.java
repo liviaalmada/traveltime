@@ -11,7 +11,7 @@ import org.graphast.model.Edge;
 
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
-import br.ufc.arida.analysis.model.measures.DistanceMeasure;
+import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
 import it.unimi.dsi.fastutil.longs.LongList;
 
 public class BFSClustering {
@@ -26,10 +26,10 @@ public class BFSClustering {
 	private ProbabilisticGraph graph;
 	private int timeInterval;
 	private double threshold;
-	private DistanceMeasure<ProbabilisticCost> distance;
+	private TrafficComparatorMeasure<ProbabilisticCost> distance;
 	private ArrayList<ArrayList<Long>> clusters;
 
-	public void doClustering(ProbabilisticGraph graph, DistanceMeasure<ProbabilisticCost> distance, int timeInterval,
+	public void doClustering(ProbabilisticGraph graph, TrafficComparatorMeasure<ProbabilisticCost> distance, int timeInterval,
 			double threshold) {
 		this.graph = graph;
 		this.timeInterval = timeInterval;
@@ -73,7 +73,7 @@ public class BFSClustering {
 		}
 	}
 
-	private void bfsClustering(ProbabilisticGraph graph, DistanceMeasure<ProbabilisticCost> distance) {
+	private void bfsClustering(ProbabilisticGraph graph, TrafficComparatorMeasure<ProbabilisticCost> distance) {
 		printCosts(graph, timeInterval);
 		PriorityQueue<Long> edgesTovisitedQueue = new PriorityQueue<>();
 		int actualIndex = clusters.size();
