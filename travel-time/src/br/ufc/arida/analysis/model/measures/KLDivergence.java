@@ -6,7 +6,7 @@ public class KLDivergence implements TrafficComparatorMeasure<ProbabilisticCost>
 	private static final int size = 160;
 	
 	@Override
-	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws NullCostException {
 		double kld = 0;
 		for (int value = 0; value <= size; value++) {
 			double pi = m1.density(value);
@@ -17,7 +17,7 @@ public class KLDivergence implements TrafficComparatorMeasure<ProbabilisticCost>
 	}
 
 	@Override
-	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws NullCostException {
 		return calculate(m1, m2);
 	}
 

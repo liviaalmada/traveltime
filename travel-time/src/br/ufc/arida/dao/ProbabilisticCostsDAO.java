@@ -145,6 +145,7 @@ public class ProbabilisticCostsDAO {
 	public void addGaussianCost(ProbabilisticGraph graph, boolean fill, int numIntervals)
 			throws ClassNotFoundException, SQLException, IOException {
 		long edges = graph.getNumberOfEdges();
+		graph.setNumberOfIntervals(numIntervals);
 		int count = 0;
 		Map<Long, CostTimeSeries> map = getTravelCostTimeSeries(numIntervals);
 		for (int id = 0; id < edges; id++) {
@@ -164,7 +165,7 @@ public class ProbabilisticCostsDAO {
 					double mean = StatUtils.mean(values);
 					double std = FastMath.sqrt(StatUtils.variance(values));
 					if (std == 0)
-						std = Math.min(mean, Math.min(1, mean));
+						std = 0.5;
 					GaussianCost gaussian = new GaussianCost(mean, std);
 					graph.addProbabilisticCost(id, interval, gaussian);
 

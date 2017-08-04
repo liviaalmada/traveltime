@@ -1,16 +1,16 @@
 package br.ufc.arida.analysis.model.cost;
 
 import com.jmef.MixtureModel;
-
+//TODO
 public class GaussianParser implements ICostParser{
 
 	@Override
 	public void save(ProbabilisticCost probabilisticCost, String path) throws Exception {
-		if(probabilisticCost instanceof GaussianCost){
-			MixtureModel.save(((GaussianCost)probabilisticCost).mm, path);
-		}else{
-			throw new Exception("Wrong paser.");
-		}
+//		if(probabilisticCost instanceof GaussianCost){
+//			MixtureModel.save(((GaussianCost)probabilisticCost).mm, path);
+//		}else{
+//			throw new Exception("Wrong paser.");
+//		}
 	}
 
 	@Override

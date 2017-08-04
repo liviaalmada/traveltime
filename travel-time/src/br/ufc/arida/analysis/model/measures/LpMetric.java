@@ -22,7 +22,7 @@ public class LpMetric implements TrafficComparatorMeasure<ProbabilisticCost> {
 	}
 
 	@Override
-	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws NullCostException {
 		// TODO Auto-generated method stub
 		return 0;
 	}

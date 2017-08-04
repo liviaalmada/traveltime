@@ -30,7 +30,7 @@ public class CostTimeSeries {
 		this.travelCostSetMap = new HashMap<>();
 	}
 
-	public ArrayList<Double> getUnionOfTravelTimeCosts() {
+	public List<Double> getUnionOfTravelTimeCosts() {
 		ArrayList<Double> allCosts = new ArrayList<>();
 		for (CostSet travelCostSet : travelCostSetMap.values()) {
 			allCosts.addAll(travelCostSet.getCosts());
@@ -44,8 +44,7 @@ public class CostTimeSeries {
 			allCosts.addAll(travelCostSet.getCosts());
 		}
 		
-		double[] array = allCosts.stream().mapToDouble(Double::doubleValue).toArray();
-		return array;
+		return allCosts.stream().mapToDouble(Double::doubleValue).toArray();
 	}
 	
 	public void addTravelCost(Double value, int interval) {

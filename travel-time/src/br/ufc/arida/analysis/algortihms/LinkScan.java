@@ -31,7 +31,6 @@ public class LinkScan {
 	protected TrafficComparatorMeasure<ProbabilisticCost> distance;
 	private int nextCluster = 0;
 	private List<Long> cluster;
-	private List<Long> noises;
 	private Map<Integer, List<Long>> clusters;
 
 	public LinkScan(ProbabilisticGraph g, TrafficComparatorMeasure<ProbabilisticCost> distance) {
@@ -40,33 +39,38 @@ public class LinkScan {
 		clusters = new HashMap<>();
 	}
 
+	// Runs link scan algorithm, consider the parameters
 	public Map<Integer, List<Long>> run(double epsSim, double epsNet, int minPts, int time) {
+		// Initialize all data structures
 		long graphSize = graph.getNumberOfEdges();
 		clusters.clear();
 		inCluster = new IntBigArrayBigList(graphSize);
 		visited = new BooleanBigArrayBigList(graphSize);
 		noise = new BooleanBigArrayBigList(graphSize);
-		noises = new ArrayList<>();
-
+		List<Long> noises = new ArrayList<>();
+		// Set all edges as visited and not a noise
 		for (int id = 0; id < graphSize; id++) {
 			visited.add(false);
 			noise.add(false);
-			inCluster.add(nextCluster);
+			inCluster.add(0);
 		}
+
+		// Set the first cluster id
 		nextCluster++;
 		for (long id = 0; id < graphSize; id++) {
+			// If the edge is already in a cluster
 			if (inCluster.get(id) != 0)
 				continue;
 
 			Edge edge = graph.getEdge(id);
 			ProbabilisticCost costs = graph.getProbabilisticCosts(edge.getId(), time);
-			if(costs==null)
-				continue;
-
-			cluster = new ArrayList<>();
-			if (expandCluster(edge, epsSim, epsNet, minPts, time)) {
-				clusters.put(nextCluster, cluster);
-				nextCluster++;
+			if (costs != null) {
+				// Start and expand a new cluster
+				cluster = new ArrayList<>();
+				if (expandCluster(edge, epsSim, epsNet, minPts, time)) {
+					clusters.put(nextCluster, cluster);
+					nextCluster++;
+				}
 			}
 		}
 		for (long i = 0; i < noise.size64(); i++) {
@@ -77,14 +81,6 @@ public class LinkScan {
 		return clusters;
 	}
 
-	private String getIdsAsString(List<Edge> neighborsPts) {
-		String pts = " ";
-		for (Edge edge : neighborsPts) {
-			pts += edge.getId() + " ";
-		}
-		return pts;
-	}
-
 	private boolean expandCluster(Edge edge, double epsSim, double epsNet, int minPoints, int time) {
 		List<Edge> seeds = regionQuery(edge, epsSim, epsNet, time);
 
@@ -92,63 +88,74 @@ public class LinkScan {
 			noise.set(edge.getId().longValue(), true);
 			return false;
 		}
-
-		inCluster.set(edge.getId().longValue(), nextCluster);
-		cluster.add(edge.getId());
+		setCluster(edge);
 		setAllSeedsCluster(seeds);
+		// Verify seeds regions
 		while (!seeds.isEmpty()) {
-			Edge current = seeds.get(0);
-			seeds.remove(0);
-			List<Edge> result = regionQuery(current, epsSim, epsNet, time);
-
-			if (result.size() >= minPoints) {
+			Edge current = seeds.remove(0);
+			if (!visited.get(current.getId())) {
+				List<Edge> result = regionQuery(current, epsSim, epsNet, time);
+				// Seed is dense
+				if (result.size() < minPoints) {
+					noise.set(edge.getId().longValue(), true);
+					continue;
+				}
 				for (int i = 0; i < result.size(); i++) {
 					Edge resultP = result.get(i);
 					if (inCluster.get(resultP.getId().longValue()) == 0) {
 						seeds.add(resultP);
-						noise.set(resultP.getId().longValue(), false);
-						inCluster.set(resultP.getId().longValue(), nextCluster);
-						cluster.add(resultP.getId());
+						setCluster(resultP);
 					}
-
 				}
+
 			}
+
 		}
 		return true;
 
 	}
 
+	private void setCluster(Edge edge) {
+		noise.set(edge.getId().longValue(), false);
+		inCluster.set(edge.getId().longValue(), nextCluster);
+		cluster.add(edge.getId());
+	}
+
 	private void setAllSeedsCluster(List<Edge> seeds) {
 		for (Edge edge : seeds) {
 			if (inCluster.get(edge.getId()) == 0) {
-				inCluster.set(edge.getId().longValue(), nextCluster);
-				noise.set(edge.getId().longValue(), false);
-				cluster.add(edge.getId());
+				setCluster(edge);
 			}
 		}
 	}
 
-	
-
+	// Get in and out neighbors until epsNet hops with distance of similarity less
+	// than epsSim
 	public List<Edge> regionQuery(Edge edge, double epsSim, double epsNet, int time) {
-		List<Edge> region = new ArrayList<Edge>();
 		ProbabilisticCost costs = graph.getProbabilisticCosts(edge.getId(), time);
+		List<Edge> region = new ArrayList<>();
 		List<Edge> neighbors = new ArrayList<>();
 		Set<Long> visitedNeighbors = new HashSet<>();
 		visitedNeighbors.add(edge.getId());
+
+		// Evaluate neighborhood in the network and update neighbors list
 		getEdgesInNeighborhood(edge, epsNet, neighbors, visitedNeighbors, time);
 
+		// Filter only edges with similarity or no costs
 		for (int i = 0; i < neighbors.size(); i++) {
 			Edge edgeNeigh = neighbors.get(i);
-			ProbabilisticCost outCosts = graph.getProbabilisticCosts(edgeNeigh.getId(), time);
+			ProbabilisticCost nCost = graph.getProbabilisticCosts(edgeNeigh.getId(), time);
 			try {
-				double d = distance.calculate(costs, outCosts);
-				if (outCosts == null || d < epsSim) {
+				if (nCost == null) {
+					// Reachable edges without costs are included in the cluster
 					region.add(edgeNeigh);
+				} else {
+					double d = distance.calculate(costs, nCost);
+					if (d <= epsSim)
+						region.add(edgeNeigh);
 				}
 			} catch (Exception e) {
 				visited.set(edgeNeigh.getId().longValue(), true);
-				// e.printStackTrace();
 			}
 		}
 
@@ -189,23 +196,6 @@ public class LinkScan {
 		return neighbors;
 	}
 
-	protected List<Edge> getEdgesInNeighborhood(Edge edge) {
-		List<Edge> neighbors = new ArrayList<>();
-		LongList nodesNeig = graph.getOutNeighbors(graph.getEdge(edge.getId()).getToNode());
-		for (Long node : nodesNeig) {
-			neighbors.add(graph.getEdge(edge.getToNode(), node));
-		}
-		// System.out.println("region: " + edge.getId() + " out " +
-		// getIdsAsString(neighbors));
-		nodesNeig = graph.getInNeighbors(graph.getEdge(edge.getId()).getFromNode());
-		for (Long node : nodesNeig) {
-			neighbors.add(graph.getEdge(node, edge.getFromNode()));
-		}
-		// System.out.println("region: " + edge.getId() + " in and out " +
-		// getIdsAsString(neighbors));
-		return neighbors;
-	}
-
 	public void runAndSave(String filePath, double epsSim, double epsNet, int minPts, int time) throws IOException {
 		FileWriter writer = new FileWriter(filePath);
 		PrintWriter gravarArq = new PrintWriter(writer);
@@ -216,8 +206,15 @@ public class LinkScan {
 				String edgeStr = "LINESTRING(" + geometry.get(0).getLongitude() + " " + geometry.get(0).getLatitude()
 						+ ", " + geometry.get(geometry.size() - 1).getLongitude() + " "
 						+ geometry.get(geometry.size() - 1).getLatitude() + ");";
-				gravarArq.println(
-						e.getKey() + " ;" + edge + "; " + edgeStr + " ;" + graph.getProbabilisticCosts(edge, time));
+				String costStr = null;
+				ProbabilisticCost pcost = graph.getProbabilisticCosts(edge, time);
+				if (pcost == null) {
+					costStr = "-1;-1";
+				} else {
+					costStr = pcost.toString();
+				}
+
+				gravarArq.println(e.getKey() + " ;" + edge + "; " + edgeStr + " ;" + costStr);
 			}
 		}
 		writer.close();

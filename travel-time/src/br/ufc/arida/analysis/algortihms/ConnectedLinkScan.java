@@ -12,7 +12,7 @@ import br.ufc.arida.analysis.model.ProbabilisticGraph;
 import br.ufc.arida.analysis.model.cost.GaussianParser;
 import br.ufc.arida.analysis.model.cost.NetTrafficDistance;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
-import br.ufc.arida.analysis.model.measures.CosineDistance;
+import br.ufc.arida.analysis.model.measures.KolnogorovSmirnovDistance;
 import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
 import br.ufc.arida.dao.ProbabilisticCostsDAO;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -27,8 +27,7 @@ public class ConnectedLinkScan extends LinkScan {
 		this.epsPenalty = epsPenalty;
 	}
 
-	// TODO REFAZER PARA RETORNAR APENAS REGIOES CONEXAS => TALVEZ NÃO FAÇA
-	// SENTIDO PQ OS DADOS SÃO ESPARSOS
+	// TODO REFAZER PARA RETORNAR APENAS REGIOES CONEXAS
 	@Override
 	public List<Edge> regionQuery(Edge edge, double epsSim, double epsNet, int time) {
 		List<Edge> region = new ArrayList<Edge>();
@@ -45,6 +44,7 @@ public class ConnectedLinkScan extends LinkScan {
 				if (neigCost != null && costs != null) {
 					double d = distance.calculate(costs, neigCost);
 					if (d < epsSim) {
+						System.out.println("distance: "+d);
 						region.add(neig);
 					}
 				}else{
@@ -52,7 +52,7 @@ public class ConnectedLinkScan extends LinkScan {
 				}
 
 			} catch (Exception e) {
-				visited.set(neig.getId().longValue(), true);
+				//visited.set(neig.getId().longValue(), true);
 				e.printStackTrace();
 			}
 		}
@@ -101,7 +101,7 @@ public class ConnectedLinkScan extends LinkScan {
 			}
 		}
 
-		nodesNeig = graph.getInNeighbors(graph.getEdge(originEdge.getId()).getFromNode());
+		nodesNeig = graph.getInNeighbors(graph.getEdge(originEdge.getId()).getFromNode());              
 		for (Long node : nodesNeig) {
 			Edge neigh = graph.getEdge(node, originEdge.getFromNode());
 			if (inCluster.get(neigh.getId()) == 0 && !visitedNeighbors.contains(neigh.getId())) {
@@ -121,20 +121,20 @@ public class ConnectedLinkScan extends LinkScan {
 
 	public static void main(String[] args) {
 		ProbabilisticGraph graph = new ProbabilisticGraph(
-				"/home/livia/git/graph-import/graph-import/graph/fortaleza-graphast", new GaussianParser());
+				"resources/fortaleza-graphast", new GaussianParser());
 		graph.load();
 		ProbabilisticCostsDAO dao = new ProbabilisticCostsDAO(
-				"/home/livia/git/graph-import/graph-import/graphast-to-graphhopper-map");
+				"resources/graphast-to-graphhopper-map");
 
 		try {
 			int numIntervals = 4;
 			dao.addGaussianCost((ProbabilisticGraph) graph, false, numIntervals);
 			graph.setNumberOfIntervals(numIntervals);
-			ConnectedLinkScan alg = new ConnectedLinkScan(graph, new CosineDistance(), 3);
+			LinkScan alg = new LinkScan(graph, new KolnogorovSmirnovDistance());
 
 			String file = "con-clusters" + String.format("%.1f", 0.2) + "-" + 10 + "-" + 100 + " - " + 3;
 			System.out.println("Processing " + file);
-			alg.runAndSave(file, 0.2, 10, 100, 3);
+			alg.runAndSave(file, 0.5, 10, 30, 3);
 
 		} catch (Exception e) {
 			// TODO: handle exception

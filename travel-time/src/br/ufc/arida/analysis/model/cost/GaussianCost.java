@@ -5,8 +5,8 @@ import com.jmef.PVector;
 import com.jmef.UnivariateGaussian;
 
 public class GaussianCost implements ProbabilisticCost {
-	public MixtureModel mm;
-	public PVector parameters;
+	private MixtureModel mm;
+	private PVector parameters;
 
 	public GaussianCost(double mean, double sigma) {
 		mm = new MixtureModel(1);
@@ -16,6 +16,14 @@ public class GaussianCost implements ProbabilisticCost {
 		parameters.array[1] = sigma;
 		mm.param[0] = parameters;
 		mm.weight[0] = 1.0;
+	}
+	
+	public double getMean() {
+		return parameters.array[0] ;
+	}
+	
+	public double getStd() {
+		return parameters.array[1];
 	}
 	
 	public GaussianCost(MixtureModel mm) throws Exception {
@@ -37,6 +45,14 @@ public class GaussianCost implements ProbabilisticCost {
 	public String toString() {
 		if(mm!=null)return "" + ((PVector)mm.param[0]).array[0]+";" +((PVector)mm.param[0]).array[1]+ "";
 		else return "";
+	}
+
+
+	public double[] getParameters() {
+		double[] param = new double[2];
+		param[0] = ((PVector)mm.param[0]).array[0];
+		param[1] = ((PVector)mm.param[0]).array[1];
+		return param;
 	}
 	
 	 

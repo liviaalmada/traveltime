@@ -5,7 +5,7 @@ import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
 public class CosineDistance implements TrafficComparatorMeasure<ProbabilisticCost> {
 
 	
-	private static final int size = 160;
+	private static final int size = 100;
 
 	@Override
 	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws Exception{// throws Exception {

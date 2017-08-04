@@ -85,7 +85,7 @@ public class ProbabilisticGraph extends GraphImpl implements IProbabilisticGraph
 	public void addProbabilisticCost(long edgeId, ProbabilisticCost[] costs) {
 		if(edgeId < getNumberOfEdges())
 			probabilisticCosts.put(edgeId, costs);
-		else new GraphastException("Edge not found.");
+		else throw new GraphastException("Edge not found.");
 	}
 	
 	@Override
@@ -119,12 +119,12 @@ public class ProbabilisticGraph extends GraphImpl implements IProbabilisticGraph
 
 	public void addProbabilisticCost(long edgeId, int time, ProbabilisticCost newCost) {
 		if(edgeId < getNumberOfEdges()&& time <= maxTime) {
-			ProbabilisticCost[] probabilisticCosts = getProbabilisticCosts(edgeId);
-			if(probabilisticCosts==null){
-				probabilisticCosts = new ProbabilisticCost[numberOfIntervals];
+			ProbabilisticCost[] pCosts = getProbabilisticCosts(edgeId);
+			if(pCosts==null){
+				pCosts = new ProbabilisticCost[numberOfIntervals];
 			}
-			probabilisticCosts[time]=newCost;
-		} else new GraphastException("Edge not found.");
+			pCosts[time]=newCost;
+		} else throw new GraphastException("Edge not found.");
 	}
 	
 	

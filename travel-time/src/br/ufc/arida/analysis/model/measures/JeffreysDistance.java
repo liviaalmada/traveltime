@@ -6,7 +6,7 @@ public class JeffreysDistance implements TrafficComparatorMeasure<ProbabilisticC
 	private static final int size = 100;
 
 	@Override
-	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+	public double calculate(ProbabilisticCost m1, ProbabilisticCost m2) throws NullCostException {
 		double kld = 0;
 		for (int value = 0; value <= size; value++) {
 			double pi = Math.max(m1.density(value),0.00001 );
@@ -17,7 +17,7 @@ public class JeffreysDistance implements TrafficComparatorMeasure<ProbabilisticC
 	}
 
 	@Override
-	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws Exception {
+	public double calculate(Long id1, Long id2, ProbabilisticCost m1, ProbabilisticCost m2) throws NullCostException {
 		return calculate(m1, m2);
 	}
 
