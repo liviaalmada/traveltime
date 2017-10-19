@@ -1,19 +1,12 @@
---Includ all edges -- OLD
-CREATE TABLE COMPACT_TIME_SERIES AS 
-SELECT EDGE_ID, floor((DATE_PART('HOUR', START_TIME)* 60 + DATE_PART('MINUTES', START_TIME))/15) AS TIME_INTERVAL, TRAVEL_TIME, avg_speed_ms
-FROM TRAJECTORY_EDGES, roads_experiments
-where avg_speed_ms <=  maxspeed_forward and id=edge_id
-ORDER BY 1,2;
-
--- Import map-matching to speed_observations table
+-- Import map-matching to speed_observations table 
 psql -U postgres 
 -h localhost  
 -d taxisimples 
 -c "COPY speed_observations FROM '/home/livia/git/speed-estimation/speed.estimation/map-matching-junho' delimiter ',' csv;"
-
+-- Importar pra tabel onde o tempo é um bigint e depois copiar para uma outra onde o tempo é um timestamp
 -- Insert edges - NEW
-insert into COMPACT_TIME_SERIES 
-SELECT edge_id_gh, floor((DATE_PART('HOUR', START_TIME)* 60 + DATE_PART('MINUTES', START_TIME))/15) AS TIME_INTERVAL, avg_speed_ms, from_node_gh, to_node_gh
+create table COMPACT_TIME_SERIES_june_hour as
+SELECT edge_id_gh as edge_id, floor((DATE_PART('HOUR', START_TIME)* 60 + DATE_PART('MINUTES', START_TIME))/60) AS TIME_INTERVAL, avg_speed_ms
 FROM speed_observations
 ORDER BY 1,2;
 

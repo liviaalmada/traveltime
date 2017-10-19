@@ -121,10 +121,10 @@ public class ConnectedLinkScan extends LinkScan {
 
 	public static void main(String[] args) {
 		ProbabilisticGraph graph = new ProbabilisticGraph(
-				"resources/fortaleza-graphast", new GaussianParser());
+				"/Users/liviaalmada/git/graph-data/graphast/", new GaussianParser());
 		graph.load();
 		ProbabilisticCostsDAO dao = new ProbabilisticCostsDAO(
-				"resources/graphast-to-graphhopper-map");
+				"/Users/liviaalmada/git/graph-data/fortal-graphast-to-graphhopper-map");
 
 		try {
 			int numIntervals = 4;
@@ -134,7 +134,7 @@ public class ConnectedLinkScan extends LinkScan {
 
 			String file = "con-clusters" + String.format("%.1f", 0.2) + "-" + 10 + "-" + 100 + " - " + 3;
 			System.out.println("Processing " + file);
-			alg.runAndSave(file, 0.5, 10, 30, 3);
+			alg.runAndSave(file, 0.2, 10, 30, 3);
 
 		} catch (Exception e) {
 			// TODO: handle exception

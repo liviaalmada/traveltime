@@ -34,14 +34,32 @@ public class ProbabilisticCostsDAO {
 
 	private int countEmptyRoads;
 	private HashMap<Long, Long> mapNodes;
+	private static String tableName = "compact_time_series_turnos";
 
 	public ProbabilisticCostsDAO() {
 		// TODO Auto-generated constructor stub
 	}
 
-	public ProbabilisticCostsDAO(String pathStr) {
-		Path path = Paths.get(pathStr);
+	public ProbabilisticCostsDAO(String pathMapfile) {
+		Path path = Paths.get(pathMapfile);
 		mapNodes = new HashMap<>();
+		try {
+			List<String> readAllLines = Files.readAllLines(path);
+			for (String line : readAllLines) {
+				String[] mapStr = line.split(",");
+				mapNodes.put(Long.valueOf(mapStr[0]), Long.valueOf(mapStr[1]));
+			}
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+
+	}
+	
+	public ProbabilisticCostsDAO(String pathMapfile, String tableName) {
+		Path path = Paths.get(pathMapfile);
+		mapNodes = new HashMap<>();
+		ProbabilisticCostsDAO.tableName = tableName;
 		try {
 			List<String> readAllLines = Files.readAllLines(path);
 			for (String line : readAllLines) {
@@ -297,7 +315,7 @@ public class ProbabilisticCostsDAO {
 			throws ClassNotFoundException, SQLException, IOException {
 		Connection connection = ConnectionJDBC.getConnection();
 		PreparedStatement prepareStatement = connection
-				.prepareStatement("SELECT * FROM  compact_time_series_turnos WHERE EDGE_ID = ?");
+				.prepareStatement("SELECT * FROM  "+tableName+" WHERE EDGE_ID = ?");
 
 		prepareStatement.setLong(1, edgeId);
 
@@ -321,7 +339,7 @@ public class ProbabilisticCostsDAO {
 			throws ClassNotFoundException, SQLException, IOException {
 		Connection connection = ConnectionJDBC.getConnection();
 		PreparedStatement prepareStatement = connection.prepareStatement(
-				"SELECT * FROM  compact_time_series_turnos  where avg_speed_ms < ? order by edge_id, time_interval");
+				"SELECT * FROM  "+tableName+"  where avg_speed_ms < ? order by edge_id, time_interval");
 		prepareStatement.setDouble(1, 120);
 		ResultSet resultSet = prepareStatement.executeQuery();
 		Map<Long, CostTimeSeries> map = new HashMap<>();
