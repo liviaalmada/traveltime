@@ -15,12 +15,9 @@ import org.graphast.geometry.Point;
 import org.graphast.model.Edge;
 
 import br.ufc.arida.analysis.model.ProbabilisticGraph;
-import br.ufc.arida.analysis.model.cost.GaussianParser;
 import br.ufc.arida.analysis.model.cost.NetTrafficDistance;
 import br.ufc.arida.analysis.model.cost.ProbabilisticCost;
-import br.ufc.arida.analysis.model.measures.KolnogorovSmirnovDistance;
 import br.ufc.arida.analysis.model.measures.TrafficComparatorMeasure;
-import br.ufc.arida.dao.ProbabilisticCostsDAO;
 import it.unimi.dsi.fastutil.booleans.BooleanBigArrayBigList;
 import it.unimi.dsi.fastutil.ints.IntBigArrayBigList;
 import it.unimi.dsi.fastutil.longs.LongList;
@@ -30,12 +27,12 @@ public class LinkScan {
 	protected ProbabilisticGraph graph;
 	protected BooleanBigArrayBigList visited;
 	protected BooleanBigArrayBigList noise;
+	protected BooleanBigArrayBigList core;
 	protected IntBigArrayBigList inCluster;
 	protected TrafficComparatorMeasure<ProbabilisticCost> distance;
 	private int nextCluster = 0;
 	private List<Long> cluster;
 	private Map<Integer, List<Long>> clusters;
-	private int time;
 
 	public LinkScan(ProbabilisticGraph g, TrafficComparatorMeasure<ProbabilisticCost> distance) {
 		this.graph = g;
@@ -45,19 +42,20 @@ public class LinkScan {
 
 	// Runs link scan algorithm, consider the parameters
 	public Map<Integer, List<Long>> run(double epsSim, double epsNet, int minPts, int time) {
-		// Initialize all data 
-		
+		// Initialize all data structures
 		long graphSize = graph.getNumberOfEdges();
 		clusters.clear();
 		inCluster = new IntBigArrayBigList(graphSize);
 		visited = new BooleanBigArrayBigList(graphSize);
 		noise = new BooleanBigArrayBigList(graphSize);
+		core = new BooleanBigArrayBigList(graphSize);
 		List<Long> noises = new ArrayList<>();
 		// Set all edges as visited and not a noise
 		for (int id = 0; id < graphSize; id++) {
 			visited.add(false);
 			noise.add(false);
 			inCluster.add(0);
+			core.add(false);
 		}
 
 		// Set the first cluster id
@@ -90,9 +88,11 @@ public class LinkScan {
 		List<Edge> seeds = regionQuery(edge, epsSim, epsNet, time);
 
 		if (seeds.size() < minPoints) {
-			noise.set(edge.getId().longValue(), true);
+			noise.set(edge.getId().longValue(), true);			
 			return false;
 		}
+		
+		core.set(edge.getId().longValue(), true);
 		setCluster(edge);
 		setAllSeedsCluster(seeds);
 		// Verify seeds regions
@@ -121,13 +121,9 @@ public class LinkScan {
 	}
 
 	private void setCluster(Edge edge) {
-		//ProbabilisticCost cost = graph.getProbabilisticCosts(edge.getId(),time);
 		noise.set(edge.getId().longValue(), false);
 		inCluster.set(edge.getId().longValue(), nextCluster);
-		//if(cost!=null) {			
-			cluster.add(edge.getId());
-		//}
-		
+		cluster.add(edge.getId());
 	}
 
 	private void setAllSeedsCluster(List<Edge> seeds) {
@@ -209,12 +205,12 @@ public class LinkScan {
 		FileWriter writer = new FileWriter(filePath);
 		PrintWriter gravarArq = new PrintWriter(writer);
 		Map<Integer, List<Long>> map = this.run(epsSim, epsNet, minPts, time);
-		for (Entry<Integer, List<Long>> e : map.entrySet()) {
-			for (Long edge : e.getValue()) {
+		for (Entry<Integer, List<Long>> entry : map.entrySet()) {
+			for (Long edge : entry.getValue()) {
 				List<Point> geometry = this.graph.getEdge(edge.longValue()).getGeometry();
 				String edgeStr = "LINESTRING(" + geometry.get(0).getLongitude() + " " + geometry.get(0).getLatitude()
-						+ "," + geometry.get(geometry.size() - 1).getLongitude() + " "
-						+ geometry.get(geometry.size() - 1).getLatitude() + ")";
+						+ ", " + geometry.get(geometry.size() - 1).getLongitude() + " "
+						+ geometry.get(geometry.size() - 1).getLatitude() + ");";
 				String costStr = null;
 				ProbabilisticCost pcost = graph.getProbabilisticCosts(edge, time);
 				if (pcost == null) {
@@ -223,33 +219,10 @@ public class LinkScan {
 					costStr = pcost.toString();
 				}
 
-				gravarArq.println(e.getKey() + ";" + edge + ";" + edgeStr + ";" + costStr);
+				gravarArq.println(entry.getKey() + ";" + edge+ ";"+core.get(edge)+"; "+noise.get(edge)+";" + edgeStr + " ;" + costStr);
 			}
 		}
 		writer.close();
 	}
 
-	
-	public static void main(String[] args) {
-		ProbabilisticGraph graph = new ProbabilisticGraph(
-				"/Users/liviaalmada/git/graph-data/graphast/", new GaussianParser());
-		graph.load();
-		ProbabilisticCostsDAO dao = new ProbabilisticCostsDAO(
-				"/Users/liviaalmada/git/graph-data/fortal-graphast-to-graphhopper-map", "compact_time_series_june");
-
-		try {
-			int numIntervals = 4;
-			dao.addGaussianCost((ProbabilisticGraph) graph, false, numIntervals);
-			graph.setNumberOfIntervals(numIntervals);
-			LinkScan alg = new LinkScan(graph, new KolnogorovSmirnovDistance());
-
-			String file = "con-clusters" + String.format("%.1f", 0.2) + "-" + 10 + "-" + 100 + " - " + 3;
-			System.out.println("Processing " + file);
-			alg.runAndSave(file, 0.5, 10, 30, 3);
-
-		} catch (Exception e) {
-			// TODO: handle exception
-			e.printStackTrace();
-		}
-	}
 }
