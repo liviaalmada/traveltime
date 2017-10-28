@@ -50,6 +50,7 @@ public class LinkScan {
 		noise = new BooleanBigArrayBigList(graphSize);
 		core = new BooleanBigArrayBigList(graphSize);
 		List<Long> noises = new ArrayList<>();
+		
 		// Set all edges as visited and not a noise
 		for (int id = 0; id < graphSize; id++) {
 			visited.add(false);
@@ -95,6 +96,7 @@ public class LinkScan {
 		core.set(edge.getId().longValue(), true);
 		setCluster(edge);
 		setAllSeedsCluster(seeds);
+		
 		// Verify seeds regions
 		while (!seeds.isEmpty()) {
 			Edge current = seeds.remove(0);
@@ -153,7 +155,7 @@ public class LinkScan {
 			try {
 				if (nCost == null) {
 					// Reachable edges without costs are included in the cluster
-					region.add(edgeNeigh);
+					//region.add(edgeNeigh);
 				} else {
 					double d = distance.calculate(costs, nCost);
 					if (d <= epsSim)
